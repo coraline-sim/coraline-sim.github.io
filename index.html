@@ -815,6 +815,7 @@ button.primary:active, button.ghost:active { transform: translateY(1px); }
   font-size: 12px;
   line-height: 1.5;
   color: #b8c3d3;
+  white-space: pre-line;
 }
 
 @media (max-width: 720px) {
@@ -918,7 +919,8 @@ button.primary:active, button.ghost:active { transform: translateY(1px); }
               </div>
             </div>
           </div>
-          <p id="diffDesc" class="diff-desc">이 카티야들은 첫 Q를 보고 무빙을 하려 합니다.</p>
+          <p id="diffDesc" class="diff-desc">이 카티야들은 첫 Q를 보고 무빙을 하려 합니다.
+에임 트래킹 연습에 용이합니다.</p>
           <div id="countTitle" class="diff-title count-title">카티야 수</div>
           <div class="diff-options" id="countOptions">
             <button class="diff-btn count-btn" data-count="1" type="button">1명</button>
@@ -1507,9 +1509,9 @@ window.COMBO_VOICE = {
   let hudLastElapsed = -1;
   let enemyCount = 3;
   const DIFF_DESC = {
-    easy: '이 카평들은 피하지 않습니다.',
-    normal: '이 카티야들은 첫 Q를 보고 무빙을 하려 합니다.',
-    hard: '이 카티야들은 거울의 각도를 봅니다.',
+    easy: '이 카평들은 피하지 않습니다.\n스킬에 익숙해지기에 용이합니다.',
+    normal: '이 카티야들은 첫 Q를 보고 무빙을 하려 합니다.\n에임 트래킹 연습에 용이합니다.',
+    hard: '이 카티야들은 거울의 각도를 봅니다.\n정교한 스킬샷 연습에 용이합니다.',
     fable: '그를 맞추려고 하다간 쇼츠에 끌려갈 수 있습니다.',
     checkpoint: '그들의 우승을 막으세요. (난이도 최상상상상상)',
   };
