@@ -1876,6 +1876,8 @@ window.COMBO_VOICE = {
         blockFlash: 0,
         blockCd: 0,
         rootTimer: 0,
+        reviveTarget: null,
+        reviveApproach: 0,
       };
     }
   }
@@ -2344,7 +2346,11 @@ window.COMBO_VOICE = {
     S.reviveActive = true;
     addText(e.x, e.y - e.r - 62, '체크메이트 시네마 재생성 중…', '#7dffb0', 16);
     playReviveSfx();
-    playEstelle('save');
+    const g = S.guardian;
+    if (g) {
+      g.reviveTarget = { x: e.x, y: e.y };
+      g.reviveApproach = 0;
+    }
   }
 
   function finishRevive(e) {
@@ -2596,10 +2602,26 @@ window.COMBO_VOICE = {
     let best = Infinity;
     for (const e of S.enemies) {
       if (e.dead) continue;
+      if (e.reviving) { target = e; best = 0; break; }
       const d = dist(e.x, e.y, p.x, p.y);
       if (d < best) { best = d; target = e; }
     }
     if (!target) return;
+
+    if (target.reviving) {
+      const dx = target.x - g.x;
+      const dy = target.y - g.y;
+      const dl = Math.hypot(dx, dy) || 1;
+      const org = M(1.35);
+      const want = Math.max(0, dl - org);
+      const step = Math.min(want, M(4.2) * dt);
+      if (dl > org) {
+        g.x += (dx / dl) * step;
+        g.y += (dy / dl) * step;
+      }
+      g.reviveApproach = dl <= org + M(0.05) ? 1 : (g.reviveApproach || 0);
+      return;
+    }
 
     const pdx = p.x - target.x;
     const pdy = p.y - target.y;
@@ -2744,8 +2766,11 @@ window.COMBO_VOICE = {
     for (const e of S.enemies) {
       if (e.reviving) {
         e.reviveT = (e.reviveT || 0) + dt;
+        e.vx = 0; e.vy = 0;
+        e.moveTarget = null;
         if (e.reviveT >= REVIVE_FINISH) finishRevive(e);
       }
+      const wasReviving = !!e.reviving;
       if (e.invuln > 0) e.invuln -= dt;
       if (e.spawn > 0) e.spawn -= dt;
       if (e.hitFlash > 0) e.hitFlash -= dt;
@@ -2763,6 +2788,7 @@ window.COMBO_VOICE = {
       }
 
       if (S.frozen) continue;
+      if (wasReviving) continue;
       if (e.rootTimer > 0) {
         e.rootTimer -= dt;
         continue;
