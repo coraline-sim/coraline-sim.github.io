@@ -775,6 +775,33 @@ button.primary:active, button.ghost:active { transform: translateY(1px); }
   min-width: 210px;
 }
 
+.mode-col .diff-title {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding-bottom: 6px;
+  margin-bottom: 9px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.mode-col.is-practice .diff-title {
+  color: #8fe4b4;
+  border-bottom-color: rgba(143, 228, 180, 0.35);
+}
+
+.mode-col.is-minigame .diff-title {
+  color: #ffb3c9;
+  border-bottom-color: rgba(255, 179, 201, 0.35);
+}
+
+.mode-col.is-practice .diff-btn.is-active {
+  background: linear-gradient(180deg, #d9ffe8, #8fe4b4);
+}
+
+.mode-col.is-minigame .diff-btn.is-active {
+  background: linear-gradient(180deg, #ffe3ec, #ffb3c9);
+}
+
 .mode-col-options {
   display: flex;
   flex-wrap: wrap;
@@ -862,7 +889,7 @@ button.primary:active, button.ghost:active { transform: translateY(1px); }
           </div>
           <button id="resetBtn" class="mini" type="button">초기화</button>
         </div>
-        <div class="timer-keys"><b>우클릭</b> 이동 · <b>S</b> 정지 · <b>W</b> 거울 설치 · <b>Q</b> 발사 · <b>V</b> 상하 반전</div>
+        <div class="timer-keys"><b>우클릭</b> 이동(미니게임) · <b>S</b> 정지 · <b>W</b> 거울 설치 · <b>Q</b> 발사 · <b>V</b> 상하 반전</div>
       </div>
 
       <div id="streak" class="combo"></div>
@@ -872,11 +899,10 @@ button.primary:active, button.ghost:active { transform: translateY(1px); }
       <div class="panel intro">
         <div class="eyebrow">ETERNAL RETURN · CORALINE</div>
         <h1>코렐라인<br>시뮬레이터 v1</h1>
-        <p class="notice">비공식 팬게임 · 비상업적 · 원작자 및 제작사와 무관합니다.</p>
         <div id="checkmateBadge" class="checkmate-badge" hidden>체크메이트 클리어!!</div>
         <div class="diff-picker">
           <div class="mode-split">
-            <div class="mode-col">
+            <div class="mode-col is-practice">
               <div class="diff-title">연습 모드</div>
               <div class="diff-options mode-col-options">
                 <button class="diff-btn" data-diff="easy" type="button">쉬움</button>
@@ -884,7 +910,7 @@ button.primary:active, button.ghost:active { transform: translateY(1px); }
                 <button class="diff-btn" data-diff="hard" type="button">어려움</button>
               </div>
             </div>
-            <div class="mode-col">
+            <div class="mode-col is-minigame">
               <div class="diff-title">미니게임 모드</div>
               <div class="diff-options mode-col-options">
                 <button class="diff-btn" data-diff="fable" type="button">페이블</button>
@@ -920,7 +946,7 @@ button.primary:active, button.ghost:active { transform: translateY(1px); }
 
         <button id="keysToggle" class="keys-toggle" type="button" aria-expanded="true" aria-controls="keysPanel">조작법 접기 ▲</button>
         <div class="keys" id="keysPanel">
-          <div><kbd>우클릭</kbd><span>이동 — 시작 지점 기준 2m 이내</span></div>
+          <div><kbd>우클릭</kbd><span>이동 — <b>미니게임 모드 전용</b> (연습 모드는 고정)</span></div>
           <div><kbd>W</kbd><span>거울 설치 — 스마트키: 누른 순간 위치 고정, 이후 마우스 방향으로 설치</span></div>
           <div><kbd>드래그</kbd><span>스마트키가 꺼져 있을 때 좌클릭한 채 끌어 위치·방향 지정</span></div>
           <div><kbd>Q</kbd><span>커서 방향 발사 — 거울에 맞히면 꺾임</span></div>
@@ -936,6 +962,7 @@ button.primary:active, button.ghost:active { transform: translateY(1px); }
           <button id="restartBtn" class="ghost" type="button">다시 시작</button>
         </div>
 
+        <p class="notice">비공식 팬게임 · 비상업적 · 원작자 및 제작사와 무관합니다.</p>
         <p class="warn">⚠️ 붉은 섬광 · 화면 흔들림 · 큰 소리가 있습니다.</p>
         <p class="credit">
           PC(키보드 + 마우스) 전용입니다. 모바일·인앱 브라우저에서는 플레이할 수 없습니다.<br>
@@ -4565,7 +4592,7 @@ window.COMBO_VOICE = {
     }
     mouse.x = p.x;
     mouse.y = p.y;
-    if (moveHeld && !paused && S && !S.placing) setMoveTarget(p.x, p.y);
+    if (moveHeld && !paused && S && !S.placing && isFable()) setMoveTarget(p.x, p.y);
     updateDragAngle();
   });
 
@@ -4580,6 +4607,7 @@ window.COMBO_VOICE = {
         return;
       }
       if (paused) return;
+      if (!isFable()) return;
       moveHeld = true;
       setMoveTarget(p.x, p.y);
       return;
