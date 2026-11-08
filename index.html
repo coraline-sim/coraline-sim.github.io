@@ -763,6 +763,24 @@ button.primary:active, button.ghost:active { transform: translateY(1px); }
   border-color: transparent;
 }
 
+.mode-split {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.mode-col {
+  flex: 1 1 0;
+  min-width: 210px;
+}
+
+.mode-col-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .count-title { margin-top: 14px; }
 
 .diff-desc {
@@ -857,13 +875,22 @@ button.primary:active, button.ghost:active { transform: translateY(1px); }
         <p class="notice">비공식 팬게임 · 비상업적 · 원작자 및 제작사와 무관합니다.</p>
         <div id="checkmateBadge" class="checkmate-badge" hidden>체크메이트 클리어!!</div>
         <div class="diff-picker">
-          <div class="diff-title">난이도</div>
-          <div class="diff-options">
-            <button class="diff-btn" data-diff="easy" type="button">쉬움</button>
-            <button class="diff-btn is-active" data-diff="normal" type="button">보통</button>
-            <button class="diff-btn" data-diff="hard" type="button">어려움</button>
-            <button class="diff-btn" data-diff="fable" type="button">페이블</button>
-            <button class="diff-btn" data-diff="checkpoint" type="button">체크포인트 페이블</button>
+          <div class="mode-split">
+            <div class="mode-col">
+              <div class="diff-title">연습 모드</div>
+              <div class="diff-options mode-col-options">
+                <button class="diff-btn" data-diff="easy" type="button">쉬움</button>
+                <button class="diff-btn is-active" data-diff="normal" type="button">보통</button>
+                <button class="diff-btn" data-diff="hard" type="button">어려움</button>
+              </div>
+            </div>
+            <div class="mode-col">
+              <div class="diff-title">미니게임 모드</div>
+              <div class="diff-options mode-col-options">
+                <button class="diff-btn" data-diff="fable" type="button">페이블</button>
+                <button class="diff-btn" data-diff="checkpoint" type="button">체크메이트 페이블</button>
+              </div>
+            </div>
           </div>
           <p id="diffDesc" class="diff-desc">이 카티야들은 첫 Q를 보고 무빙을 하려 합니다.</p>
           <div id="countTitle" class="diff-title count-title">카티야 수</div>
@@ -909,7 +936,7 @@ button.primary:active, button.ghost:active { transform: translateY(1px); }
           <button id="restartBtn" class="ghost" type="button">다시 시작</button>
         </div>
 
-        <p class="warn">⚠️ 붉은 섬광 · 화면 흔들림 · 큰 소리 · 공포 연출이 있습니다.</p>
+        <p class="warn">⚠️ 붉은 섬광 · 화면 흔들림 · 큰 소리가 있습니다.</p>
         <p class="credit">
           PC(키보드 + 마우스) 전용입니다. 모바일·인앱 브라우저에서는 플레이할 수 없습니다.<br>
           이미지: 무돈(@dhchvhcg) 님 / 공식 이미지 권리는 원작자에게 있습니다.<br>
@@ -1146,12 +1173,16 @@ window.COMBO_VOICE = {
   const PLAYER_RANGE_Y = 0.5;
   const GAME_SPEED = 0.85;
 
+  const PRACTICE_RANGE_Y = 1;
+
   function playerRangeUp() {
+    if (!isFable()) return M(PRACTICE_RANGE_Y);
     const side = M(PLAYER_RANGE_X * 2);
     return FLIP ? M(0.7) : side - M(0.7);
   }
 
   function playerRangeDown() {
+    if (!isFable()) return M(PRACTICE_RANGE_Y);
     const side = M(PLAYER_RANGE_X * 2);
     return FLIP ? side - M(0.7) : M(0.7);
   }
