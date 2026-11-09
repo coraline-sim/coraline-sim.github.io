@@ -2342,9 +2342,16 @@ window.COMBO_VOICE = {
     return e.fableHits >= 4 && e.blinkCd <= 0;
   }
 
-  const REVIVE_TOTAL = 5.66;
-  const REVIVE_INVULN_UNTIL = 5.45;
-  const REVIVE_FINISH = 5.25;
+  // 소생 사운드 실측 타임라인(실시간):
+  //   0.15s 시작 · 마지막 피크 "나는" 5.25s · 총 길이 5.65s
+  // 게임 로직은 update(dt * GAME_SPEED)로 0.85배속이라,
+  // 실시간을 게임 시간으로 환산해야 사운드와 맞는다.
+  const REVIVE_RT_FINISH = 5.25;
+  const REVIVE_RT_INVULN = 5.45;
+  const REVIVE_RT_TOTAL = 5.65;
+  const REVIVE_TOTAL = REVIVE_RT_TOTAL * GAME_SPEED;
+  const REVIVE_INVULN_UNTIL = REVIVE_RT_INVULN * GAME_SPEED;
+  const REVIVE_FINISH = REVIVE_RT_FINISH * GAME_SPEED;
 
   function reviveCheckpoint(e) {
     e.phase2Hp = 1;
