@@ -1307,7 +1307,11 @@ window.COMBO_VOICE = {
   }
 
   const DIFFICULTIES = {
-    easy:   { firstShotImmune: true,  dodgeEnhanced: false, react: 0,    normalReact: Infinity, dodgeCross: 1.2, dodgeDur: 0.65, dodgeCd: 0.2,  mirrorReact: null, mirrorCross: 0,   turn: 12, reach: 2.2 },
+    // turnSmooth: 이동 방향 회전 속도 / strafeFlip: 방향 전환 확률
+    // thinkRange: 방향 재고 주기 / wander: 배회 강도 / dodgeImmune: 예측샷 회피 실패율
+    easy:   { firstShotImmune: true,  dodgeEnhanced: false, react: 0,    normalReact: Infinity, dodgeCross: 1.2, dodgeDur: 0.65, dodgeCd: 0.2,  mirrorReact: null, mirrorCross: 0,   turn: 12, reach: 2.2,
+              turnSmooth: 1.5, strafeFlip: 0.22, thinkRange: [2.6, 4.2], escapeW: 1.2,
+              steerLerp: 0.045, speedScale: 0.86 },
     normal: { firstShotImmune: false, dodgeEnhanced: false, react: 0,    normalReact: 0, dodgeCross: 1.2, dodgeDur: 0.65, dodgeCd: 0.2,  mirrorReact: null, mirrorCross: 0,   turn: 12, reach: 2.2 },
     hard:   { firstShotImmune: false, dodgeEnhanced: false, react: 0,    normalReact: 0, dodgeCross: 1.3, dodgeDur: 0.7,  dodgeCd: 0.2,  mirrorReact: 0.25, mirrorCross: 1.5, turn: 13, reach: 2.4 },
     fable:  { firstShotImmune: false, dodgeEnhanced: true,  react: 0, normalReact: Infinity, dodgeCross: 4.2, dodgeDur: 1.5,  dodgeCd: 0,    mirrorReact: 0,    mirrorCross: 4.4, turn: 18, reach: 5.2 },
@@ -3053,8 +3057,9 @@ window.COMBO_VOICE = {
 
       e.think -= dt;
       if (e.think <= 0) {
-        e.think = rand(1.1, 2.2);
-        if (Math.random() < 0.55) e.strafe *= -1;
+        const tr = DIFF.thinkRange || [1.1, 2.2];
+        e.think = rand(tr[0], tr[1]);
+        if (Math.random() < (DIFF.strafeFlip != null ? DIFF.strafeFlip : 0.55)) e.strafe *= -1;
       }
 
       let vx = -ny * e.strafe;
@@ -3102,9 +3107,11 @@ window.COMBO_VOICE = {
         const ex = cx - e.x;
         const ey = cy - e.y;
         const el = Math.hypot(ex, ey) || 1;
-        vx += (ex / el) * 2.8;
-        vy += (ey / el) * 2.8;
+        const ew = DIFF.escapeW != null ? DIFF.escapeW : 2.8;
+        vx += (ex / el) * ew;
+        vy += (ey / el) * ew;
       }
+
 
       if (isFable() && e.dodgeTimer <= 0 && e.dodgeCd <= 0) {
         const ax = mouse.x - p.x;
@@ -3180,9 +3187,28 @@ window.COMBO_VOICE = {
         }
       }
 
+      // 조향 벡터를 부드럽게 이어붙인다(저난이도일수록 강하게).
+      // 이렇게 하면 프레임마다 힘이 뒤집혀도 실제 진행 방향은 천천히 바뀐다.
+      if (DIFF.steerLerp) {
+        const lk = clamp(DIFF.steerLerp * (dt * 60), 0, 1);
+        if (e.steerX == null) { e.steerX = vx; e.steerY = vy; }
+        e.steerX += (vx - e.steerX) * lk;
+        e.steerY += (vy - e.steerY) * lk;
+        // 세기가 너무 줄면 최소치를 보장해 '멈춘 듯한' 상태를 막는다
+        const sl = Math.hypot(e.steerX, e.steerY);
+        if (sl < 0.35) {
+          const bl = Math.hypot(vx, vy) || 1;
+          e.steerX += (vx / bl) * (0.35 - sl);
+          e.steerY += (vy / bl) * (0.35 - sl);
+        }
+        vx = e.steerX;
+        vy = e.steerY;
+      }
+
       const desired = e.dodgeTimer > 0 ? e.dodgeDir : Math.atan2(vy, vx);
-      e.angle = approachAngle(e.angle, desired, dt * (e.dodgeTimer > 0 ? DIFF.turn : 3.2));
-      const sp = e.baseSpeed;
+      const roamTurn = DIFF.turnSmooth != null ? DIFF.turnSmooth : 3.2;
+      e.angle = approachAngle(e.angle, desired, dt * (e.dodgeTimer > 0 ? DIFF.turn : roamTurn));
+      const sp = e.baseSpeed * (DIFF.speedScale || 1);
       const moveX = e.x;
       const moveY = e.y;
       e.x += Math.cos(e.angle) * sp * dt;
@@ -5897,6 +5923,7 @@ window.COMBO_VOICE = {
     });
     refreshSmartKey();
   }
+
 
   let last = performance.now();
 
