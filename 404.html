@@ -266,6 +266,23 @@ body {
   white-space: nowrap;
 }
 
+.admin-badge {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 3px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  color: #1a1206;
+  background: linear-gradient(180deg, #ffe9a8, #ffb020);
+  box-shadow: 0 0 14px rgba(255, 176, 32, 0.6);
+  pointer-events: none;
+  z-index: 30;
+}
+
 .combo {
   position: absolute;
   top: 150px;
@@ -934,6 +951,7 @@ button.primary:active, button.ghost:active { transform: translateY(1px); }
         <div class="timer-keys"><b>우클릭</b> 이동(미니게임) · <b>S</b> 정지 · <b>W</b> 거울 설치 · <b>Q</b> 발사 · <b>V</b> 상하 반전</div>
       </div>
 
+      <div id="adminBadge" class="admin-badge" hidden>ADMIN</div>
       <div id="streak" class="combo"></div>
     </div>
 
@@ -1615,6 +1633,28 @@ window.COMBO_VOICE = {
   let bgmVolume = 0.7;
   let sfxVolume = 0.7;
   let FLIP = false;
+  // ---- 관리자 모드 ----
+  // 진입: ↑ ↑ ↓ ↓ ← → ← → (컨트롤 2번) 후 B. 화면에는 아무 표시도 없다.
+  const ADMIN_SEQ = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown',
+    'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight'];
+  let adminMode = false;
+  let adminBuf = [];
+  let adminFlashT = 0;
+
+  function adminNotice(msg, color) {
+    if (!S) return;
+    addText(S.player.x, S.player.y - 78, msg, color || '#ffd166', 15);
+  }
+
+  function toggleAdmin() {
+    adminMode = !adminMode;
+    adminFlashT = 1.6;
+    adminNotice(adminMode ? '관리자 모드 ON' : '관리자 모드 OFF',
+      adminMode ? '#ffd166' : '#9fb2c9');
+    try { store.set('medialog.admin', adminMode ? '1' : '0'); } catch (e) {}
+    if (!adminMode) S.frozen = false;
+  }
+
   let smartKey = false;
   let currentVoice = null;
   let currentVoiceGroup = null;
@@ -3730,8 +3770,11 @@ window.COMBO_VOICE = {
     }
   }
 
+  const adminBadgeEl = document.getElementById('adminBadge');
+
   function updateHud() {
     if (!S) return;
+    if (adminBadgeEl) adminBadgeEl.hidden = !adminMode;
     if (S.elapsed - hudLastElapsed < 0.1) return;
     hudLastElapsed = S.elapsed;
     const s = S.stats;
@@ -5098,6 +5141,24 @@ window.COMBO_VOICE = {
     if (e.repeat) return;
     keys.add(e.code);
 
+    // ---- 관리자 모드 시크릿 진입 ----
+    if (ADMIN_SEQ.includes(e.code)) {
+      adminBuf.push(e.code);
+      if (adminBuf.length > ADMIN_SEQ.length) adminBuf.shift();
+      if (adminBuf.length === ADMIN_SEQ.length &&
+          adminBuf.every((k, i) => k === ADMIN_SEQ[i])) {
+        adminBuf = [];
+        toggleAdmin();
+        return;
+      }
+    } else if (e.code === 'KeyB' && adminBuf.length === ADMIN_SEQ.length &&
+               adminBuf.every((k, i) => k === ADMIN_SEQ[i])) {
+      adminBuf = [];
+      toggleAdmin();
+      return;
+    }
+
+
     if (e.code === 'Escape') {
       if (S && S.smartAim && S.smartAim.active) { S.smartAim = null; return; }
       if (S && (S.playerDead || S.victory)) return;
@@ -5126,6 +5187,43 @@ window.COMBO_VOICE = {
       useR();
     } else if (e.code === 'KeyS') {
       stopPlayer();
+    }
+
+    // ---- 관리자 전용 키 (adminMode일 때만 동작) ----
+    if (!adminMode || !S) return;
+    if (e.code === 'KeyJ') {
+      S.frozen = !S.frozen;
+      adminNotice(S.frozen ? '적 정지' : '적 재개', S.frozen ? '#bfeaff' : '#88ffc4');
+    } else if (e.code === 'KeyH') {
+      S.player.hp = 3;
+      adminNotice('하트 회복', '#7dffb0');
+    } else if (e.code === 'KeyK') {
+      const e0 = S.enemies[0];
+      if (e0) {
+        e0.hp = 0;
+        if (typeof damageEnemy === 'function') damageEnemy(e0, 9999);
+        adminNotice('보스 즉사', '#ff6b7a');
+      }
+    } else if (e.code === 'KeyT') {
+      S.invincible = Math.max(S.invincible, 30);
+      adminNotice('30초 무적', '#bfeaff');
+    } else if (e.code === 'KeyN') {
+      if (S.enemies[0]) {
+        S.enemies[0].revived = !S.enemies[0].revived;
+        adminNotice(S.enemies[0].revived ? '소생 상태 ON' : '소생 상태 OFF', '#ffd166');
+      }
+    } else if (e.code === 'KeyM') {
+      S.heart = null;
+      dropHeart(S.enemies[0]);
+      adminNotice('하트 소환', '#ff9ec4');
+    } else if (e.code === 'KeyG') {
+      if (isCheckpoint()) { startFeintHazard(); adminNotice('눈속임 강제 발동', '#ff4d5e'); }
+      else adminNotice('체크메이트에서만', '#9fb2c9');
+    } else if (e.code === 'KeyL') {
+      S.player.hp = 0;
+      S.playerDead = true;
+      S.deathTimer = 0.5;
+      adminNotice('자살', '#ff6b7a');
     }
   });
 
