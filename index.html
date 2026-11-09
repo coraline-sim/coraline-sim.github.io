@@ -2479,7 +2479,6 @@ window.COMBO_VOICE = {
     S.reviveActive = true;
     addText(e.x, e.y - e.r - 62, '체크메이트 시네마 재생성 중…', '#7dffb0', 16);
     playReviveSfx();
-    dropHeart(e);
     const g = S.guardian;
     if (g) {
       g.reviveTarget = { x: e.x, y: e.y };
@@ -2497,6 +2496,7 @@ window.COMBO_VOICE = {
     S.reviveActive = false;
     S.hazardCd = 1.2;
     S.edgeAddCd = 3;
+    dropHeart(e);
     addText(e.x, e.y - e.r - 54, '체크메이트 시네마 소생!', '#7dffb0', 18);
     burst(e.x, e.y, '#7dffb0', 46);
     puff(e.x, e.y, '#b6ffcf', 26);
@@ -3450,11 +3450,11 @@ window.COMBO_VOICE = {
     }
   }
 
-  // 소생 직후 플레이어에게 목숨을 주는 하트를 바닥에 떨어뜨린다.
+  // 소생 완료와 동시에, 이동 가능한 박스 한가운데에 목숨을 주는 하트를 떨어뜨린다.
   function dropHeart(e) {
     const sq = hazardSquare();
-    const cx = clamp(S.player.x + rand(-M(2.4), M(2.4)), sq.left + M(1.2), sq.left + sq.w - M(1.2));
-    const cy = clamp(S.player.y + rand(-M(1.7), M(1.7)), sq.top + M(1.2), sq.top + sq.h - M(1.2));
+    const cx = sq.left + sq.w / 2;
+    const cy = sq.top + sq.h / 2;
     S.heart = {
       x: cx, y: cy, r: M(0.42), t: 12, max: 12,
       spawnY: cy, vy: -M(2.2), settle: false, bob: 0,
