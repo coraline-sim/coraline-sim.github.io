@@ -1714,7 +1714,33 @@ window.COMBO_VOICE = {
     RSK.speed = M(10);
   }
 
-  function resizeWorld() {
+  // 월드 좌표를 가진 모든 엔티티를 한 곳에 모은다.
+  // 새 상태를 추가할 때 여기만 고치면 리사이즈가 빠뜨리지 않는다.
+  function worldEntities() {
+    const list = [];
+    if (!S) return list;
+    list.push(...S.enemies);
+    if (S.guardian) list.push(S.guardian);
+    if (S.mirror) list.push(S.mirror);
+    list.push(...S.charges, ...S.projectiles, ...S.enemyShots);
+    list.push(...S.particles, ...S.texts);
+    if (S.edgeAdd) list.push(S.edgeAdd);
+    if (S.taegwung) list.push(S.taegwung);
+    if (S.taegwungHit) list.push(S.taegwungHit);
+    return list;
+  }
+
+  // 변환 후 보스·시네마를 새 경계 안으로 밀어 넣는다.
+  // 이 처리가 없으면 창 크기를 바꿨을 때 화면 밖 좌표가 남아
+  // 다음 프레임에 순간이동하듯 튀어 오른다.
+  function clampEnemyToArena(e) {
+    if (!e || e.dead || typeof e.x !== 'number') return;
+    const rr = e.r || 0;
+    e.x = clamp(e.x, bounds.left + rr, bounds.right - rr);
+    e.y = clamp(e.y, ENEMY_TOP + rr, ENEMY_BOTTOM - rr);
+  }
+
+  function applyWorldResize() {
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const w = Math.max(320, window.innerWidth);
     const h = Math.max(240, window.innerHeight);
@@ -1732,44 +1758,73 @@ window.COMBO_VOICE = {
     layoutWorld();
 
     if (!S) return;
+    if (!oldPPM) return;
 
     const k = PPM / oldPPM;
+    const px = (x) => origin.x + ((x - oldOX) / oldPPM) * PPM;
+    const py = (y) => origin.y + ((y - oldOY) / oldPPM) * PPM;
+
     const convPoint = (o) => {
-      const mx = (o.x - oldOX) / oldPPM;
-      const my = (o.y - oldOY) / oldPPM;
-      o.x = origin.x + mx * PPM;
-      o.y = origin.y + my * PPM;
+      if (!o || typeof o.x !== 'number' || typeof o.y !== 'number') return;
+      o.x = px(o.x);
+      o.y = py(o.y);
       if (typeof o.r === 'number') o.r *= k;
       if (typeof o.size === 'number') o.size *= k;
-      if (typeof o.vx === 'number') {
-        o.vx *= k;
-        o.vy *= k;
-      }
+      if (typeof o.vx === 'number') { o.vx *= k; o.vy *= k; }
       if (typeof o.baseSpeed === 'number') o.baseSpeed *= k;
-      if (o.trail) {
-        for (const q of o.trail) {
-          q.x = origin.x + ((q.x - oldOX) / oldPPM) * PPM;
-          q.y = origin.y + ((q.y - oldOY) / oldPPM) * PPM;
-        }
-      }
+      if (o.trail) for (const q of o.trail) { q.x = px(q.x); q.y = py(q.y); }
+      if (typeof o.homeX === 'number') { o.homeX = px(o.homeX); o.homeY = py(o.homeY); }
     };
+
+    for (const o of worldEntities()) convPoint(o);
+
+    // 장판은 중심 좌표가 cx/cy다
+    for (const hz of S.hazards || []) {
+      if (typeof hz.cx !== 'number') continue;
+      hz.cx = px(hz.cx);
+      hz.cy = py(hz.cy);
+      if (typeof hz.r === 'number') hz.r *= k;
+    }
+
+    // 보조 좌표들
+    if (S.moveTarget) { S.moveTarget.x = px(S.moveTarget.x); S.moveTarget.y = py(S.moveTarget.y); }
+    if (S.smartAim) {
+      S.smartAim.ax = px(S.smartAim.ax);
+      S.smartAim.ay = py(S.smartAim.ay);
+      S.smartAim.lastX = mouse.x;
+      S.smartAim.lastY = mouse.y;
+    }
+    if (S.blinkFx) {
+      const b = S.blinkFx;
+      const x1 = px(b.x1), y1 = py(b.y1), x2 = px(b.x2), y2 = py(b.y2);
+      b.x1 = x1; b.y1 = y1; b.x2 = x2; b.y2 = y2;
+    }
+    if (S.guardian && S.guardian.reviveTarget) {
+      const t = S.guardian.reviveTarget;
+      t.x = px(t.x); t.y = py(t.y);
+    }
+    if (S.drag.active) { S.drag.ax = px(S.drag.ax); S.drag.ay = py(S.drag.ay); }
+
+    // 새 경계로 clamp (악용·순간이동 방지)
+    for (const e of S.enemies) clampEnemyToArena(e);
+    if (S.guardian) clampEnemyToArena(S.guardian);
 
     S.player.x = origin.x;
     S.player.y = origin.y;
     S.player.r = M(0.55);
     S.moveTarget = null;
     moveHeld = false;
-    for (const e of S.enemies) convPoint(e);
-    if (S.mirror) convPoint(S.mirror);
-    for (const c of S.charges) convPoint(c);
-    for (const pr of S.projectiles) convPoint(pr);
-    for (const p of S.particles) convPoint(p);
-    for (const t of S.texts) convPoint(t);
+  }
 
-    if (S.drag.active) {
-      S.drag.ax = origin.x + ((S.drag.ax - oldOX) / oldPPM) * PPM;
-      S.drag.ay = origin.y + ((S.drag.ay - oldOY) / oldPPM) * PPM;
-    }
+  // 창 드래그·DevTools·최소화로 resize가 연달아 와도
+  // 마지막 이벤트 후 한 번만 처리한다.
+  let resizeTimer = 0;
+  function resizeWorld() {
+    if (resizeTimer) clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => {
+      resizeTimer = 0;
+      applyWorldResize();
+    }, 160);
   }
 
   function createState() {
