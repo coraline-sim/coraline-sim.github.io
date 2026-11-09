@@ -3545,12 +3545,31 @@ window.COMBO_VOICE = {
       f.fired = true;
       f.merging = true;
       f.mergeT = 0;
-      // 끌려가는 이펙트가 뜨는 순간 '1' 폭탄은 즉시 사라진다.
-      // 남은 좌표들은 자력선 연출에만 쓰고 원/라벨은 그리지 않는다.
+      // 끌려가기 시작하는 순간 '1' 폭탄은 판정·장판·라벨 전부 즉시 사라진다.
       f.decoys = (S.hazards || []).map((hz) => ({
         sx: hz.cx, sy: hz.cy, r: hz.r,
       }));
       S.hazards = [];
+      // 사라진 자리에서 중심으로 빨려드는 자력 입자만 남긴다
+      for (const d of f.decoys) {
+        for (let i = 0; i < 9; i++) {
+          const k = i / 9;
+          const ox = d.sx + rand(-M(0.15), M(0.15));
+          const oy = d.sy + rand(-M(0.15), M(0.15));
+          const dx = f.cx - ox;
+          const dy = f.cy - oy;
+          const len = Math.hypot(dx, dy) || 1;
+          const sp = M(14) * (0.8 + k * 0.5);
+          S.particles.push({
+            x: ox, y: oy,
+            vx: (dx / len) * sp,
+            vy: (dy / len) * sp,
+            life: 0.40, max: 0.40,
+            color: i % 3 === 0 ? '#ffd9c0' : '#ff7a6a',
+            size: M(0.055) + M(0.03) * k,
+          });
+        }
+      }
       playBomb2Sfx();
       addText(f.cx, f.cy - f.r * 1.3, '자력 융합!', '#ff4d5e', 18);
       S.shake = Math.min(S.shake + 4, 14);
@@ -3675,6 +3694,7 @@ window.COMBO_VOICE = {
     updateHeart(dt);
     updateBombFeint(dt);
     if (!S.hazards.length) {
+      if (S.bombFeint) return;  // 융합 중에는 새 폭탄을 깔지 않는다
       S.hazardCd -= dt;
       if (S.hazardCd <= 0) startHazard();
       return;
@@ -4887,36 +4907,18 @@ window.COMBO_VOICE = {
 
   function drawFeintMerge(now) {
     const f = S && S.bombFeint;
-    if (!f || !f.decoys) return;
-    const merging = f.merging;
+    if (!f || !f.merging) return;
     const raw = clamp(f.mergeT / f.mergeIn, 0, 1);
     const e = raw * raw * (3 - 2 * raw); // smoothstep
-    const alpha = merging ? (1 - raw) : 0;
-    if (alpha <= 0.01) return;
+    // 장판·1폭탄 흔적은 그리지 않는다. 중심으로 수축하는 링만 표시.
+    const ringR = f.r * (1.75 - 0.95 * e);
+    const fade = 1 - raw;
+    if (fade <= 0.02) return;
     ctx.save();
-    ctx.globalAlpha = alpha;
-    ctx.strokeStyle = '#ff7a6a';
+    ctx.globalAlpha = fade * 0.8;
+    ctx.strokeStyle = 'rgba(255,150,120,0.95)';
     ctx.shadowColor = '#ff5a5f';
     ctx.shadowBlur = 12;
-    ctx.lineWidth = 2;
-    // 각 더미에서 중심으로 빨려드는 자력선
-    for (const d of f.decoys) {
-      const cx = d.sx + (f.cx - d.sx) * e;
-      const cy = d.sy + (f.cy - d.sy) * e;
-      ctx.beginPath();
-      ctx.moveTo(d.sx, d.sy);
-      ctx.lineTo(cx, cy);
-      ctx.stroke();
-      // 끝점의 작은 빛 입자
-      ctx.fillStyle = 'rgba(255,190,150,0.9)';
-      ctx.beginPath();
-      ctx.arc(cx, cy, 3.2 * (1 - 0.5 * e), 0, Math.PI * 2);
-      ctx.fill();
-    }
-    // 중심 수축 링
-    const ringR = f.r * (1.9 - 0.9 * e);
-    ctx.globalAlpha = alpha * 0.75;
-    ctx.strokeStyle = 'rgba(255,140,110,0.9)';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     ctx.arc(f.cx, f.cy, ringR, 0, Math.PI * 2);
