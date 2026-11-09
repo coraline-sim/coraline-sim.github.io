@@ -584,11 +584,52 @@ body {
 
 .smart-row { margin: 0 0 12px; }
 
+.menu-sound {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
 .menu-sound .mini {
   width: auto;
+  min-width: 132px;
   margin-top: 0;
-  background: rgba(10, 12, 17, 0.78);
-  color: #eaf1f8;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: #c9d6e6;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 9px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08) inset;
+}
+
+.menu-sound .mini:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* 음소거 상태는 붉게 표시 */
+.menu-sound .mini.is-muted {
+  color: #ffd7dc;
+  background: rgba(120, 24, 36, 0.55);
+  border-color: rgba(255, 110, 130, 0.55);
+}
+
+/* 켜진 상태는 색으로 확실히 구분 */
+.menu-sound .mini.is-on {
+  color: #04140c;
+  background: linear-gradient(180deg, #b9ffdb, #6ee7a8);
+  border-color: transparent;
+  box-shadow: 0 0 14px rgba(110, 231, 168, 0.45);
+}
+
+.menu-sound .mini.is-on:hover {
+  color: #04140c;
+  background: linear-gradient(180deg, #ccffe7, #7defb4);
 }
 
 .actions {
@@ -1015,6 +1056,10 @@ button.primary:active, button.ghost:active { transform: translateY(1px); }
           <p id="countNote" class="diff-desc"></p>
         </div>
 
+        <div class="menu-sound">
+          <button id="smartKeyBtn" class="mini" type="button">스마트키: OFF</button>
+          <button id="muteBtnMenu" class="mini" type="button">소리 켬</button>
+        </div>
         <div class="volume-row intro-volume">
           <span class="volume-label">BGM</span>
           <input id="bgmSliderIntro" class="volume" type="range" min="0" max="100" step="1" value="70" aria-label="BGM 음량">
@@ -1025,16 +1070,12 @@ button.primary:active, button.ghost:active { transform: translateY(1px); }
           <input id="sfxSliderIntro" class="volume" type="range" min="0" max="100" step="1" value="70" aria-label="효과음 음량">
           <span id="sfxValueIntro" class="volume-value">70%</span>
         </div>
-        <div class="menu-sound">
-          <button id="smartKeyBtn" class="mini" type="button">스마트키: 꺼짐</button>
-          <button id="muteBtnMenu" class="mini" type="button">소리 켬</button>
-        </div>
 
         <button id="keysToggle" class="keys-toggle" type="button" aria-expanded="true" aria-controls="keysPanel">조작법 접기 ▲</button>
         <div class="keys" id="keysPanel">
           <div><kbd>우클릭</kbd><span>이동 — <b>미니게임 모드 전용</b> (연습 모드는 고정)</span></div>
           <div><kbd>W</kbd><span>거울 설치 — 스마트키: 누른 순간 위치 고정, 이후 마우스 방향으로 설치</span></div>
-          <div><kbd>드래그</kbd><span>스마트키가 꺼져 있을 때 좌클릭한 채 끌어 위치·방향 지정</span></div>
+          <div><kbd>드래그</kbd><span>스마트키가 OFF일 때 좌클릭한 채 끌어 위치·방향 지정</span></div>
           <div><kbd>Q</kbd><span>커서 방향 발사 — 거울에 맞히면 꺾임</span></div>
           <div><kbd>E</kbd><span>죄의 굴레 — 빛 구체 피해·0.8초 속박, 거울에 닿으면 강화 (체크포인트)</span></div>
           <div><kbd>R</kbd><span>이세계의 잔영 — 커서 방향 2.5m 대시·0.5초 무적 (체크포인트)</span></div>
@@ -5870,7 +5911,10 @@ window.COMBO_VOICE = {
     if (typeof data.sfx === 'number') setSfxVolume(Math.round(data.sfx * 100));
     if (typeof data.smartKey === 'boolean') {
       smartKey = data.smartKey;
-      if (smartKeyBtn) smartKeyBtn.textContent = smartKey ? '스마트키: 켜짐' : '스마트키: 꺼짐';
+      if (smartKeyBtn) {
+        smartKeyBtn.textContent = smartKey ? '스마트키: ON' : '스마트키: OFF';
+        smartKeyBtn.classList.toggle('is-on', smartKey);
+      }
     }
     if (typeof data.keysOpen === 'boolean') applyKeysOpen(data.keysOpen);
     if (typeof data.muted === 'boolean' && data.muted !== muted) {
@@ -5894,6 +5938,7 @@ window.COMBO_VOICE = {
   muteBtn.addEventListener('click', () => {
     muted = !muted;
     muteBtn.textContent = muted ? '소리 끔' : '소리 켬';
+    muteBtn.classList.toggle('is-muted', muted);
     if (muteBtnMenu) muteBtnMenu.textContent = muteBtn.textContent;
     const bgmEl = document.getElementById('bgm');
     if (bgmEl) bgmEl.muted = muted;
@@ -5913,7 +5958,8 @@ window.COMBO_VOICE = {
 
   if (smartKeyBtn) {
     const refreshSmartKey = () => {
-      smartKeyBtn.textContent = smartKey ? '스마트키: 켜짐' : '스마트키: 꺼짐';
+      smartKeyBtn.textContent = smartKey ? '스마트키: ON' : '스마트키: OFF';
+      smartKeyBtn.classList.toggle('is-on', smartKey);
     };
     smartKeyBtn.addEventListener('click', () => {
       smartKey = !smartKey;
