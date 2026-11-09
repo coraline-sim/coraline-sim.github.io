@@ -802,27 +802,46 @@ button.primary:active, button.ghost:active { transform: translateY(1px); }
   background: linear-gradient(180deg, #ffe3ec, #ffb3c9);
 }
 
-/* 난이도별 개별 색상 */
-.diff-btn[data-diff="normal"].is-active {
+/* 난이도별 개별 색상 — 모드 컬럼 선택자보다 특이성을 높여야 적용된다 */
+.mode-col .diff-btn[data-diff="easy"].is-active {
+  background: linear-gradient(180deg, #e6fff1, #8fe4b4);
+  color: #04140c;
+}
+
+.mode-col .diff-btn[data-diff="normal"].is-active {
   background: linear-gradient(180deg, #dceaff, #6fb3ff);
   color: #05111f;
 }
 
-.diff-btn[data-diff="hard"].is-active {
+.mode-col .diff-btn[data-diff="hard"].is-active {
   background: linear-gradient(180deg, #ffe6cc, #ff9d42);
   color: #20100a;
 }
 
-.diff-btn[data-diff="checkpoint"].is-active {
+.mode-col .diff-btn[data-diff="fable"].is-active {
+  background: linear-gradient(180deg, #ffe3ec, #ffb3c9);
+  color: #1c0710;
+}
+
+.mode-col .diff-btn[data-diff="checkpoint"].is-active {
   background: linear-gradient(180deg, #d92f42, #74060f);
   color: #ffe9ec;
   box-shadow: 0 0 12px rgba(190, 20, 40, 0.55);
 }
 
 /* 비활성 상태에서도 난이도 색을 옅게 암시 */
+.diff-btn[data-diff="easy"]:not(.is-active) { border-color: rgba(143, 228, 180, 0.38); }
 .diff-btn[data-diff="normal"]:not(.is-active) { border-color: rgba(111, 179, 255, 0.38); }
 .diff-btn[data-diff="hard"]:not(.is-active) { border-color: rgba(255, 157, 66, 0.38); }
+.diff-btn[data-diff="fable"]:not(.is-active) { border-color: rgba(255, 179, 201, 0.38); }
 .diff-btn[data-diff="checkpoint"]:not(.is-active) { border-color: rgba(217, 47, 66, 0.42); }
+
+/* 호버 시에도 테두리 색 유지 */
+.diff-btn[data-diff="easy"]:not(.is-active):hover { border-color: rgba(143, 228, 180, 0.65); }
+.diff-btn[data-diff="normal"]:not(.is-active):hover { border-color: rgba(111, 179, 255, 0.65); }
+.diff-btn[data-diff="hard"]:not(.is-active):hover { border-color: rgba(255, 157, 66, 0.65); }
+.diff-btn[data-diff="fable"]:not(.is-active):hover { border-color: rgba(255, 179, 201, 0.65); }
+.diff-btn[data-diff="checkpoint"]:not(.is-active):hover { border-color: rgba(217, 47, 66, 0.7); }
 
 .mode-col-options {
   display: flex;
