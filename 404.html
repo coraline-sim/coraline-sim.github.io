@@ -3282,10 +3282,7 @@ window.COMBO_VOICE = {
       eHit: false, wHit: false, done: false, doneT: 0, clock: pick.clock,
       approach: 0, homeX: x, homeY: y,
     };
-    playTgFx();
-    setTimeout(() => {
-      if (S.edgeAdd && !S.edgeAdd.done && !S.playerDead) playTgVoice();
-    }, 3300);
+    playTgVoice();
     addText(x, y - 58, 'Warning!!', '#ff4d5e', 18);
     addText(x, y - 36, 'E-W', '#5ff2e0', 15);
     sfx('transfer');
@@ -3330,6 +3327,7 @@ window.COMBO_VOICE = {
       S.edgeAddCd = rand(7, 10);
       S.immobilize = 1.5;
       playTgAtk();
+      playTgFx();
       damagePlayer(1);
       addText(S.player.x, S.player.y - 60, '태귱의 잔영 침입! 1.5초 이동 불가', '#ff6b7a', 15);
       S.taegwung = { t: 1.5, max: 1.5, x: S.player.x, y: S.player.y + M(1.15) };
@@ -5044,7 +5042,7 @@ window.COMBO_VOICE = {
   function playTgVoice() {
     if (muted) return;
     if (!tgVoiceBufs.length) { prepareTgVoice(); return; }
-    playBuffer(tgVoiceBufs[0], 0.49 * sfxVolume);
+    playBuffer(tgVoiceBufs[0], 0.58 * sfxVolume);
   }
 
   let tgFxPreparing = false;
@@ -5058,7 +5056,7 @@ window.COMBO_VOICE = {
   function playTgFx() {
     if (muted) return;
     if (!tgFxBuffers.length) { prepareTgFx(); return; }
-    playBuffer(tgFxBuffers[0], 3.40 * sfxVolume);
+    playBuffer(tgFxBuffers[0], 2.90 * sfxVolume);
   }
 
   let tgAtkPreparing = false;
