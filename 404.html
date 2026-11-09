@@ -2342,12 +2342,15 @@ window.COMBO_VOICE = {
     return e.fableHits >= 4 && e.blinkCd <= 0;
   }
 
-  // 소생 사운드 실측 타임라인(실시간):
-  //   0.15s 시작 · 마지막 피크 "나는" 5.25s · 총 길이 5.65s
+  // 소생 사운드 실측 타임라인(실시간, 20ms 해상도):
+  //   #0 0.18~1.00s 시작부
+  //   #1 1.44~3.88s 상승부
+  //   #2 4.10~4.96s "다라라란" 효과음  ← 부활은 여기서
+  //   #3 5.08~5.60s 대사 "나는"
   // 게임 로직은 update(dt * GAME_SPEED)로 0.85배속이라,
   // 실시간을 게임 시간으로 환산해야 사운드와 맞는다.
-  const REVIVE_RT_FINISH = 5.25;
-  const REVIVE_RT_INVULN = 5.45;
+  const REVIVE_RT_FINISH = 4.95;
+  const REVIVE_RT_INVULN = 5.15;
   const REVIVE_RT_TOTAL = 5.65;
   const REVIVE_TOTAL = REVIVE_RT_TOTAL * GAME_SPEED;
   const REVIVE_INVULN_UNTIL = REVIVE_RT_INVULN * GAME_SPEED;
