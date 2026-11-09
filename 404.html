@@ -122,14 +122,19 @@ body {
 .stats:not(.checkpoint-hud) .cd-e,
 .stats:not(.checkpoint-hud) .cd-r { display: none; }
 
-.stats.fable-hud .brand,
 .stats.fable-hud .stat-grid,
 .stats.fable-hud #flipBtn { display: none; }
 
 .brand {
+  pointer-events: auto;
+  cursor: default;
+  position: absolute;
+  top: 14px;
+  left: 16px;
   font-size: 10px;
   letter-spacing: 0.18em;
   color: var(--dim);
+  z-index: 31;
   margin-bottom: 10px;
 }
 
@@ -265,6 +270,25 @@ body {
   padding: 6px 10px;
   white-space: nowrap;
 }
+
+.admin-exit {
+  pointer-events: auto;
+  position: absolute;
+  top: 10px;
+  left: 14px;
+  padding: 5px 12px;
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  color: #1a1206;
+  background: linear-gradient(180deg, #ffe9a8, #ffb020);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 0 14px rgba(255, 176, 32, 0.55);
+  cursor: pointer;
+  z-index: 31;
+}
+.admin-exit:hover { filter: brightness(1.08); }
 
 .admin-badge {
   position: absolute;
@@ -908,8 +932,8 @@ button.primary:active, button.ghost:active { transform: translateY(1px); }
     <canvas id="game" width="960" height="600"></canvas>
 
     <div id="hud">
+      <div class="brand" id="brandTitle">CORALINE SIMULATOR V1</div>
       <div class="panel stats">
-        <div class="brand">CORALINE SIMULATOR V1</div>
         <div class="player-hp" id="playerHp" aria-label="코렐라인 체력 3칸">
           <span class="hp-heart">♥</span><span class="hp-heart">♥</span><span class="hp-heart">♥</span>
         </div>
@@ -951,6 +975,7 @@ button.primary:active, button.ghost:active { transform: translateY(1px); }
         <div class="timer-keys"><b>우클릭</b> 이동(미니게임) · <b>S</b> 정지 · <b>W</b> 거울 설치 · <b>Q</b> 발사 · <b>V</b> 상하 반전</div>
       </div>
 
+      <button id="adminExit" class="admin-exit" type="button" hidden>← 관리자 종료</button>
       <div id="adminBadge" class="admin-badge" hidden>ADMIN</div>
       <div id="streak" class="combo"></div>
     </div>
@@ -1050,6 +1075,7 @@ button.primary:active, button.ghost:active { transform: translateY(1px); }
         <div class="victory-stats" id="victoryStats">걸린 시간 00:00 · 피격 0회</div>
         <button id="victoryRestart" class="primary" type="button">다시 시작</button>
           <button id="victoryHome" class="ghost" type="button">홈으로</button>
+        <button id="victoryAdminHome" class="ghost" type="button" hidden>홈으로</button>
       </div>
     </div>
   </main>
@@ -1500,6 +1526,22 @@ window.COMBO_VOICE = {
     overlay.style.backgroundPosition = 'center, right center';
     overlay.style.backgroundRepeat = 'no-repeat';
   }
+  // 브랜드 문구 5회 연속 클릭 → 관리자 모드 토글
+  const brandEl = qs('.brand');
+  if (brandEl) {
+    brandEl.style.cursor = 'default';
+    brandEl.addEventListener('click', () => {
+      const now = Date.now();
+      if (now - adminClickT > ADMIN_CLICK_GAP) adminClicks = 0;
+      adminClickT = now;
+      adminClicks++;
+      if (adminClicks >= ADMIN_CLICKS) {
+        adminClicks = 0;
+        toggleAdmin();
+      }
+    });
+  }
+
   const statsPanel = qs('.stats');
   const defeatEl = qs('#defeat');
   const victoryEl = qs('#victory');
@@ -1634,12 +1676,13 @@ window.COMBO_VOICE = {
   let sfxVolume = 0.7;
   let FLIP = false;
   // ---- 관리자 모드 ----
-  // 진입: ↑ ↑ ↓ ↓ ← → ← → (컨트롤 2번) 후 B. 화면에는 아무 표시도 없다.
-  const ADMIN_SEQ = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown',
-    'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight'];
+  // 진입: 좌상단 브랜드 문구를 1.2초 안에 5번 연속 클릭. 화면에는 힌트 없음.
+  const ADMIN_CLICKS = 5;
+  const ADMIN_CLICK_GAP = 1200;
   let adminMode = false;
-  let adminBuf = [];
-  let adminFlashT = 0;
+  let adminClicks = 0;
+  let adminClickT = 0;
+
 
   function adminNotice(msg, color) {
     if (!S) return;
@@ -1648,11 +1691,35 @@ window.COMBO_VOICE = {
 
   function toggleAdmin() {
     adminMode = !adminMode;
-    adminFlashT = 1.6;
     adminNotice(adminMode ? '관리자 모드 ON' : '관리자 모드 OFF',
       adminMode ? '#ffd166' : '#9fb2c9');
     try { store.set('medialog.admin', adminMode ? '1' : '0'); } catch (e) {}
-    if (!adminMode) S.frozen = false;
+    if (!adminMode) { if (S) S.frozen = false; }
+    syncAdminUI();
+  }
+
+  function syncAdminUI() {
+    const badge = document.getElementById('adminBadge');
+    if (badge) badge.hidden = !adminMode;
+    const exitBtn = document.getElementById('adminExit');
+    if (exitBtn) exitBtn.hidden = !adminMode;
+    applyAdminVictoryUI();
+  }
+
+  // 관리자 모드에서 클리어하면 축하 문구 없이 홈/다시하기만 보여준다
+  function applyAdminVictoryUI() {
+    const kicker = document.querySelector('.victory-kicker');
+    const title = document.querySelector('.victory-title');
+    const modeEl = document.getElementById('victoryMode');
+    const statsEl = document.getElementById('victoryStats');
+    const normalBtn = document.getElementById('victoryRestart');
+    const adminBtn = document.getElementById('victoryAdminHome');
+    const hide = adminMode;
+    for (const el of [kicker, title, modeEl, statsEl]) {
+      if (el) el.style.display = hide ? 'none' : '';
+    }
+    if (normalBtn) normalBtn.hidden = hide;
+    if (adminBtn) adminBtn.hidden = !hide;
   }
 
   let smartKey = false;
@@ -3770,11 +3837,8 @@ window.COMBO_VOICE = {
     }
   }
 
-  const adminBadgeEl = document.getElementById('adminBadge');
-
   function updateHud() {
     if (!S) return;
-    if (adminBadgeEl) adminBadgeEl.hidden = !adminMode;
     if (S.elapsed - hudLastElapsed < 0.1) return;
     hudLastElapsed = S.elapsed;
     const s = S.stats;
@@ -5141,22 +5205,6 @@ window.COMBO_VOICE = {
     if (e.repeat) return;
     keys.add(e.code);
 
-    // ---- 관리자 모드 시크릿 진입 ----
-    if (ADMIN_SEQ.includes(e.code)) {
-      adminBuf.push(e.code);
-      if (adminBuf.length > ADMIN_SEQ.length) adminBuf.shift();
-      if (adminBuf.length === ADMIN_SEQ.length &&
-          adminBuf.every((k, i) => k === ADMIN_SEQ[i])) {
-        adminBuf = [];
-        toggleAdmin();
-        return;
-      }
-    } else if (e.code === 'KeyB' && adminBuf.length === ADMIN_SEQ.length &&
-               adminBuf.every((k, i) => k === ADMIN_SEQ[i])) {
-      adminBuf = [];
-      toggleAdmin();
-      return;
-    }
 
 
     if (e.code === 'Escape') {
@@ -5624,6 +5672,7 @@ window.COMBO_VOICE = {
     overlay.classList.add('hidden');
     defeatEl.classList.add('hidden');
     victoryEl.classList.remove('hidden');
+    applyAdminVictoryUI();
     const cleared = difficulty;
     if (victoryModeEl) {
       victoryModeEl.textContent = (CLEAR_LABELS[cleared] || modeLabel(cleared)) + ' 난이도 클리어';
@@ -5705,6 +5754,17 @@ window.COMBO_VOICE = {
 
   qs('#victoryHome').addEventListener('click', goHome);
   qs('#defeatHome').addEventListener('click', goHome);
+
+  const adminExitBtn = qs('#adminExit');
+  if (adminExitBtn) {
+    adminExitBtn.addEventListener('click', () => {
+      if (adminMode) toggleAdmin();
+    });
+  }
+  const victoryAdminHomeBtn = qs('#victoryAdminHome');
+  if (victoryAdminHomeBtn) {
+    victoryAdminHomeBtn.addEventListener('click', goHome);
+  }
 
   resetBtn.addEventListener('click', () => {
     reset();
@@ -5858,6 +5918,7 @@ window.COMBO_VOICE = {
   prepareRSfx();
   prepareReviveSfx();
   prepareTgAtk();
+  syncAdminUI();
   prepareBomb2();
   prepareTgFx();
   prepareTgVoice();
