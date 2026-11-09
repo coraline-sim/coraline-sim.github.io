@@ -3496,7 +3496,9 @@ window.COMBO_VOICE = {
     const rest = [0, 1, 2, 3].filter((q) => q !== playerQuad);
 
     // 1) '1' 표시 폭탄 3개 (눈속임)
-    const r = Math.hypot(sq.w / 4, sq.h / 4);
+    //    일반 폭탄보다 아주 살짝 작게 — 티는 안 나지만 위화감을 준다.
+    const rFull = Math.hypot(sq.w / 4, sq.h / 4);
+    const r = rFull * 0.94;
     S.hazards = rest.map((quad) => ({
       quad,
       cx: sq.left + (quad % 2 === 0 ? sq.w * 0.25 : sq.w * 0.75),
@@ -3520,6 +3522,9 @@ window.COMBO_VOICE = {
       cy: sq.top + (playerQuad < 2 ? sq.h * 0.25 : sq.h * 0.75),
       r,
       fired: false,
+      merging: false,
+      mergeT: 0,
+      decoys: null,
     };
 
     playBombVoice();
@@ -3529,26 +3534,41 @@ window.COMBO_VOICE = {
   // 눈속임 폭탄이 실제로 생기고 바로 터지는 처리
   function updateBombFeint(dt) {
     const f = S.bombFeint;
-    if (!f || f.fired) return;
-    f.at -= dt;
-    if (f.at > 0) return;
-    f.fired = true;
-    playBomb2Sfx();
-    // 3개가 한 사분면으로 합쳐진다 — 더미는 사라지고 그 자리에 4폭탄이 선다
-    S.hazards = [];
-    S.hazards.push({
+    if (!f) return;
+    if (!f.fired) {
+      f.at -= dt;
+      if (f.at > 0) return;
+      f.fired = true;
+      f.merging = true;
+      f.mergeT = 0;
+      // 더미들은 사라지지 않고 진짜 폭탄 자리로 끌려간다
+      f.decoys = (S.hazards || []).map((hz) => ({
+        sx: hz.cx, sy: hz.cy, r: hz.r,
+      }));
+      S.hazards = [];
+      playBomb2Sfx();
+      addText(f.cx, f.cy - f.r * 1.3, '끌려간다!', '#ff4d5e', 17);
+      S.shake = Math.min(S.shake + 4, 14);
+      return;
+    }
+    if (!f.merging) return;
+    f.mergeT += dt;
+    if (f.mergeT < f.mergeIn) return;
+    // 합쳐짐 완료 → 그 자리에서 바로 터진다 (3폭탄과 동일 타이밍)
+    f.merging = false;
+    S.hazards = [{
       quad: f.quad,
       cx: f.cx,
       cy: f.cy,
       r: f.r,
       phase: 'warn',
-      t: f.mergeIn,
-      max: f.mergeIn,
+      t: 0.03,
+      max: 0.03,
       label: '4',
-    });
+    }];
     burst(f.cx, f.cy, '#ff5a5f', 22);
-    addText(f.cx, f.cy - f.r * 1.1, '합쳐진다!', '#ff4d5e', 17);
-    S.shake = Math.min(S.shake + 5, 14);
+    S.shake = Math.min(S.shake + 6, 16);
+    S.bombFeint = null;
   }
 
   function startHazard() {
@@ -3573,7 +3593,8 @@ window.COMBO_VOICE = {
           quads = [0, 1, 2, 3];
           warn = 1.5;
           addText(S.player.x, S.player.y - 66, '전체 폭발! R 무적', '#ff4d5e', 15);
-        } else if (Math.random() < FEINT_CHANCE) {
+        } else if (boss && boss.revived && Math.random() < FEINT_CHANCE) {
+          // 세이브는 소생이 아니다(무적 상태). 실제 소생 이후에만 눈속임.
           startFeintHazard();
           return;
         } else {
@@ -3669,6 +3690,7 @@ window.COMBO_VOICE = {
         live = true;
       }
     }
+    if (S.bombFeint) live = true;
     if (hit) {
       damagePlayer(1);
       sfx('hurt');
@@ -4857,7 +4879,42 @@ window.COMBO_VOICE = {
     }
   }
 
+  function drawFeintMerge(now) {
+    const f = S && S.bombFeint;
+    if (!f || !f.merging || !f.decoys) return;
+    const raw = clamp(f.mergeT / f.mergeIn, 0, 1);
+    const e = raw * raw * (3 - 2 * raw); // smoothstep
+    for (const d of f.decoys) {
+      const cx = d.sx + (f.cx - d.sx) * e;
+      const cy = d.sy + (f.cy - d.sy) * e;
+      const rr = d.r * (1 - 0.72 * e);
+      ctx.save();
+      ctx.globalAlpha = 0.16 + 0.10 * (0.5 + 0.5 * Math.sin(now * 16));
+      ctx.fillStyle = '#ff5a5f';
+      ctx.beginPath();
+      ctx.arc(cx, cy, rr, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 0.95;
+      ctx.strokeStyle = '#ff8a72';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([10, 8]);
+      ctx.beginPath();
+      ctx.arc(cx, cy, rr, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(255,225,195,0.95)';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = '900 ' + Math.round(rr * 0.45) + 'px "Malgun Gothic", system-ui, sans-serif';
+      ctx.shadowColor = '#ff6a5a';
+      ctx.shadowBlur = 10;
+      ctx.fillText('1', cx, cy);
+      ctx.restore();
+    }
+  }
+
   function drawHazard(now) {
+    drawFeintMerge(now);
     if (!S || !S.hazards || !S.hazards.length) return;
     for (const hz of S.hazards) {
       ctx.save();
