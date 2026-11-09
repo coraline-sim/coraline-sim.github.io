@@ -5126,13 +5126,6 @@ window.COMBO_VOICE = {
       useR();
     } else if (e.code === 'KeyS') {
       stopPlayer();
-    } else if (e.code === 'KeyJ') {
-      if (!S) return;
-      S.frozen = !S.frozen;
-      const enemyName = modeLabel();
-      addText(S.player.x, S.player.y - 58,
-        S.frozen ? enemyName + ' 정지' : enemyName + ' 재개',
-        S.frozen ? '#bfeaff' : '#ffe08a', 13);
     }
   });
 
