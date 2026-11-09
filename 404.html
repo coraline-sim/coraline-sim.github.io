@@ -2451,6 +2451,8 @@ window.COMBO_VOICE = {
   const REVIVE_RT_FINISH = 4.50;
   const REVIVE_RT_INVULN = 4.70;
   const REVIVE_RT_TOTAL = 5.00;
+  const FEINT_CHANCE = 0.40;
+
   const REVIVE_TOTAL = REVIVE_RT_TOTAL * GAME_SPEED;
   const REVIVE_INVULN_UNTIL = REVIVE_RT_INVULN * GAME_SPEED;
   const REVIVE_FINISH = REVIVE_RT_FINISH * GAME_SPEED;
@@ -3563,17 +3565,17 @@ window.COMBO_VOICE = {
       const hits = (boss && boss.fableHits) || 0;
       const mixFull = (boss && boss.revived) || hits >= 4;
       if (mixFull) {
+        // 소생 이후 폭탄은 [3폭탄 or 눈속임] → [4폭탄] 순서를 고정 반복한다.
+        // 3폭탄 차례에는 40% 확률로 눈속임으로 바뀐다.
         S.checkpointBombSeq = (S.checkpointBombSeq || 0) + 1;
-        const full = S.checkpointBombSeq % 2 === 0;
-        // 소생 이후 세 번째 패턴마다 눈속임 폭탄
-        if (S.checkpointBombSeq % 3 === 0) {
-          startFeintHazard();
-          return;
-        }
-        if (full) {
+        const isFullTurn = S.checkpointBombSeq % 2 === 0;
+        if (isFullTurn) {
           quads = [0, 1, 2, 3];
           warn = 1.5;
           addText(S.player.x, S.player.y - 66, '전체 폭발! R 무적', '#ff4d5e', 15);
+        } else if (Math.random() < FEINT_CHANCE) {
+          startFeintHazard();
+          return;
         } else {
           const rest = [0, 1, 2, 3].filter((q) => q !== playerQuad);
           for (let i = rest.length - 1; i > 0; i--) {
