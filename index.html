@@ -802,6 +802,28 @@ button.primary:active, button.ghost:active { transform: translateY(1px); }
   background: linear-gradient(180deg, #ffe3ec, #ffb3c9);
 }
 
+/* 난이도별 개별 색상 */
+.diff-btn[data-diff="normal"].is-active {
+  background: linear-gradient(180deg, #dceaff, #6fb3ff);
+  color: #05111f;
+}
+
+.diff-btn[data-diff="hard"].is-active {
+  background: linear-gradient(180deg, #ffe6cc, #ff9d42);
+  color: #20100a;
+}
+
+.diff-btn[data-diff="checkpoint"].is-active {
+  background: linear-gradient(180deg, #d92f42, #74060f);
+  color: #ffe9ec;
+  box-shadow: 0 0 12px rgba(190, 20, 40, 0.55);
+}
+
+/* 비활성 상태에서도 난이도 색을 옅게 암시 */
+.diff-btn[data-diff="normal"]:not(.is-active) { border-color: rgba(111, 179, 255, 0.38); }
+.diff-btn[data-diff="hard"]:not(.is-active) { border-color: rgba(255, 157, 66, 0.38); }
+.diff-btn[data-diff="checkpoint"]:not(.is-active) { border-color: rgba(217, 47, 66, 0.42); }
+
 .mode-col-options {
   display: flex;
   flex-wrap: wrap;
@@ -2349,8 +2371,8 @@ window.COMBO_VOICE = {
   //   (5.00s 이후 대사는 잘라냄)
   // 게임 로직은 update(dt * GAME_SPEED)로 0.85배속이라,
   // 실시간을 게임 시간으로 환산해야 사운드와 맞는다.
-  const REVIVE_RT_FINISH = 4.65;
-  const REVIVE_RT_INVULN = 4.85;
+  const REVIVE_RT_FINISH = 4.50;
+  const REVIVE_RT_INVULN = 4.70;
   const REVIVE_RT_TOTAL = 5.00;
   const REVIVE_TOTAL = REVIVE_RT_TOTAL * GAME_SPEED;
   const REVIVE_INVULN_UNTIL = REVIVE_RT_INVULN * GAME_SPEED;
