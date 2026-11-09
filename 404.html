@@ -2452,8 +2452,8 @@ window.COMBO_VOICE = {
   const REVIVE_RT_INVULN = 4.70;
   const REVIVE_RT_TOTAL = 5.00;
   const FEINT_CHANCE = 0.40;
-  // 융합 완료 후 실제 폭발까지의 유예. 거의 즉발(0.03)이던 것을 살짝 너프.
-  const FEINT_FUSE_GRACE = 0.35;
+  // 융합 완료 후 실제 폭발까지의 유예. 너프 전과 동일하게 사실상 즉발.
+  const FEINT_FUSE_GRACE = 0.03;
   // 융합 연출 길이
   const FEINT_MERGE_TIME = 0.40;
 
@@ -3524,7 +3524,7 @@ window.COMBO_VOICE = {
       sq: { left: sq.left, top: sq.top, w: sq.w, h: sq.h },
       cx: sq.left + (playerQuad % 2 === 0 ? sq.w * 0.25 : sq.w * 0.75),
       cy: sq.top + (playerQuad < 2 ? sq.h * 0.25 : sq.h * 0.75),
-      r,
+      r: rFull,  // 합쳐진 폭탄은 기본 폭탄과 동일 범위(100%)
       fired: false,
       merging: false,
       mergeT: 0,
@@ -3589,7 +3589,6 @@ window.COMBO_VOICE = {
       t: FEINT_FUSE_GRACE,
       max: FEINT_FUSE_GRACE,
       label: '4',
-      bornR: f.r * 0.72,
     }];
     burst(f.cx, f.cy, '#ff5a5f', 22);
     S.shake = Math.min(S.shake + 6, 16);
@@ -4933,33 +4932,29 @@ window.COMBO_VOICE = {
       ctx.save();
       if (hz.phase === 'warn') {
         const p = 1 - hz.t / hz.max;
-        // 융합 직후엔 살짝 작게 태어나 유예 동안 원래 크기로 자란다
-        const grow = hz.bornR
-          ? hz.bornR + (hz.r - hz.bornR) * clamp(p / 0.5, 0, 1)
-          : hz.r;
         ctx.globalAlpha = 0.16 + 0.1 * (0.5 + 0.5 * Math.sin(now * 16));
         ctx.fillStyle = '#ff5a5f';
         ctx.beginPath();
-        ctx.arc(hz.cx, hz.cy, grow, 0, Math.PI * 2);
+        ctx.arc(hz.cx, hz.cy, hz.r, 0, Math.PI * 2);
         ctx.fill();
         ctx.globalAlpha = 0.9;
         ctx.strokeStyle = '#ff8a72';
         ctx.lineWidth = 3;
         ctx.setLineDash([10, 8]);
         ctx.beginPath();
-        ctx.arc(hz.cx, hz.cy, grow, 0, Math.PI * 2);
+        ctx.arc(hz.cx, hz.cy, hz.r, 0, Math.PI * 2);
         ctx.stroke();
         ctx.setLineDash([]);
         ctx.strokeStyle = 'rgba(255,230,160,0.9)';
         ctx.lineWidth = 5;
         ctx.beginPath();
-        ctx.arc(hz.cx, hz.cy, grow - 7, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * p);
+        ctx.arc(hz.cx, hz.cy, hz.r - 7, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * p);
         ctx.stroke();
         ctx.globalAlpha = 0.95;
         ctx.fillStyle = 'rgba(255,225,195,0.95)';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.font = '900 ' + Math.round(grow * 0.45) + 'px "Malgun Gothic", system-ui, sans-serif';
+        ctx.font = '900 ' + Math.round(hz.r * 0.45) + 'px "Malgun Gothic", system-ui, sans-serif';
         ctx.shadowColor = '#ff6a5a';
         ctx.shadowBlur = 10;
         ctx.fillText(hz.label || '4', hz.cx, hz.cy);
