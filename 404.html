@@ -1734,39 +1734,12 @@ window.COMBO_VOICE = {
     addText(S.player.x, S.player.y - 78, msg, color || '#ffd166', 15);
   }
 
-  // ---- 관리자 실험: Q / 강화 Q 투사체 속도 ----
-  // 0 = 원래 값(인게임 수치 그대로 14 / 15 m/s)
-  // 1 = 플레이어 속도 비율 보정(14.99 / 16.06 m/s)
-  // 관리자 모드에서만 1이 적용되고, P 키로 실시간 전환해 비교할 수 있다.
-  let adminQSpeedMode = 0;
-
-  function applyQSpeed() {
-    const useRatio = adminMode && adminQSpeedMode === 1;
-    if (useRatio) {
-      QSK.speed = M(14) * (PLAYER_SPEED / 3.55);
-      EQSK.speed = M(15) * (PLAYER_SPEED / 3.55);
-    } else {
-      QSK.speed = M(14);
-      EQSK.speed = M(15);
-    }
-  }
-
-  function toggleQSpeedMode() {
-    adminQSpeedMode = adminQSpeedMode ? 0 : 1;
-    applyQSpeed();
-    const label = adminQSpeedMode
-      ? 'Q 속도: 보정 (15.0 / 16.1 m/s)'
-      : 'Q 속도: 원본 (14 / 15 m/s)';
-    adminNotice(label, adminQSpeedMode ? '#7fd8ff' : '#9fb2c9');
-  }
-
   function toggleAdmin() {
     adminMode = !adminMode;
     adminNotice(adminMode ? '관리자 모드 ON' : '관리자 모드 OFF',
       adminMode ? '#ffd166' : '#9fb2c9');
     try { store.set('medialog.admin', adminMode ? '1' : '0'); } catch (e) {}
     if (!adminMode) { if (S) S.frozen = false; }
-    applyQSpeed();
     syncAdminUI();
   }
 
@@ -1884,7 +1857,10 @@ window.COMBO_VOICE = {
     WSK.range = M(6);
     WSK.min = M(1.2);
     EQSK.range = M(6.8);
-    applyQSpeed();
+    // 인게임 수치(기본 14 / 강화 15 m/s)를 플레이어 이동속도 비율로 환산해 적용한다.
+    // (인게임 플레이어 3.55 m/s 기준, 강화/기본 = 1.0714)
+    QSK.speed = M(14) * (PLAYER_SPEED / 3.55);
+    EQSK.speed = M(15) * (PLAYER_SPEED / 3.55);
     ESK.range = M(8);
     ESK.speed = M(13);
     ESK.enhancedRange = M(7);
@@ -5388,8 +5364,6 @@ window.COMBO_VOICE = {
       S.playerDead = true;
       S.deathTimer = 0.5;
       adminNotice('자살', '#ff6b7a');
-    } else if (e.code === 'KeyP') {
-      toggleQSpeedMode();
     }
   });
 
