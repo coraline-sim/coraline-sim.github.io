@@ -1322,8 +1322,10 @@ window.COMBO_VOICE = {
     return cur + diff * clamp(t, 0, 1);
   }
 
-  const QSK = { range: 0, speed: 0, cd: 0.85, damage: 45 };
-  const WSK = { range: 0, cd: 0.5, life: 4, charge: 0.5, min: 0 };
+  // cd는 게임 시간 기준(실제로는 GAME_SPEED 0.85배라 체감 1.44초).
+  // 난사는 막되 답답하지 않은 선.
+  const QSK = { range: 0, speed: 0, cd: 1.7, damage: 45 };
+  const WSK = { range: 0, cd: 1.7, life: 4, charge: 0.5, min: 0 };
   const MIRROR_FADE = 0.5;
   const ESK = { cd: 6, speed: 0, range: 0, enhancedSpeed: 0, enhancedRange: 0, damage: 55, enhancedDamage: 80, root: 0.8 };
   const RSK = { cd: 4.5, range: 0, speed: 0, recovery: 0.25 };
@@ -1336,7 +1338,10 @@ window.COMBO_VOICE = {
   // 관리자 실험: 회피 시작 시 회전 램프(급격한 꺾임 완화)
   let adminTurnRamp = false;
   const EQSK = { range: 0, speed: 0, damage: 120 };
-  const PLAYER_SPEED = 3.8;
+  // 인게임 코렐라인 이동 속도 실측값.
+  // 이 값을 기준으로 모든 투사체 속도 비율(k)이 정해지므로
+  // 여기를 바꾸면 스킬 속도도 함께 인게임 비율로 유지된다.
+  const PLAYER_SPEED = 3.55;
   const PLAYER_RANGE_X = 2;
   const PLAYER_RANGE_Y = 0.5;
   const GAME_SPEED = 0.85;
@@ -2493,7 +2498,7 @@ window.COMBO_VOICE = {
     S.nextMirrorDark = !dark;
 
     S.mirror = {
-      x: ax, y: ay, angle, r: M(0.5), dark,
+      x: ax, y: ay, angle, r: M(0.6), dark,
       life: WSK.life, maxLife: WSK.life,
       flash: 0, pop: 0.4, age: 0,
       danger: true, fired: false, fade: 0, shot: null,
