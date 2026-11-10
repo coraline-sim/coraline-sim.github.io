@@ -1359,7 +1359,7 @@ window.COMBO_VOICE = {
     easy:   { firstShotImmune: true,  dodgeEnhanced: false, react: 0,    normalReact: Infinity, dodgeCross: 1.2, dodgeDur: 0.65, dodgeCd: 0.2,  mirrorReact: null, mirrorCross: 0,   turn: 12, reach: 2.2,
               turnSmooth: 1.5, strafeFlip: 0.22, thinkRange: [2.6, 4.2], escapeW: 1.2,
               steerLerp: 0.045, speedScale: 0.86 },
-    normal: { firstShotImmune: false, dodgeEnhanced: false, dodgeSustain: true, react: 0, normalReact: 0, dodgeCross: 1.2, dodgeDur: 0.65, dodgeCd: 0.2,  mirrorReact: null, mirrorCross: 0,   turn: 12, reach: 2.2 },
+    normal: { firstShotImmune: false, dodgeEnhanced: false, dodgeHold: 1.15, react: 0, normalReact: 0, dodgeCross: 1.2, dodgeDur: 0.65, dodgeCd: 0.2,  mirrorReact: null, mirrorCross: 0,   turn: 12, reach: 2.2 },
     hard:   { firstShotImmune: false, dodgeEnhanced: false, mirrorAfterAbsorb: true, react: 0,    normalReact: 0, dodgeCross: 1.3, dodgeDur: 0.7,  dodgeCd: 0.2,  mirrorReact: 0.25, mirrorCross: 1.5, turn: 13, reach: 2.4 },
     fable:  { firstShotImmune: false, dodgeEnhanced: true,  react: 0, normalReact: Infinity, dodgeCross: 4.2, dodgeDur: 1.5,  dodgeCd: 0,    mirrorReact: 0,    mirrorCross: 4.4, turn: 18, reach: 5.2 },
   };
@@ -2919,6 +2919,9 @@ window.COMBO_VOICE = {
     e.dodgeDir = Math.atan2(ux * side, -uy * side);
     e.dodgeTimer = DIFF.dodgeDur;
     e.dodgeCd = DIFF.dodgeCd;
+    // 회피가 끝난 뒤에도 한동안 이 방향을 유지한다.
+    // 그래야 플레이어가 이동을 예측해 에임 트래킹으로 맞출 수 있다.
+    e.dodgeHold = DIFF.dodgeHold || 0;
   }
 
   function updateGuardian(dt) {
@@ -3113,6 +3116,7 @@ window.COMBO_VOICE = {
       if (e.laughTimer > 0) e.laughTimer -= dt;
       if (e.dodgeCd > 0) e.dodgeCd -= dt;
       if (e.dodgeTimer > 0) e.dodgeTimer -= dt;
+      if (e.dodgeHold > 0) e.dodgeHold -= dt;
       if (e.blinkCd > 0) e.blinkCd -= dt;
       if (e.escape > 0) e.escape -= dt;
 
@@ -3277,28 +3281,6 @@ window.COMBO_VOICE = {
         }
       }
 
-      // 회피가 시작되면 위협이 지나갈 때까지 같은 방향으로 계속 움직인다.
-      // 중간에 방향을 꺾거나 멈추면 첫 Q를 피하다가 되돌아서는 것처럼 보이므로,
-      // 위협이 정면에 남아 있는 동안 dodgeTimer를 유지하고 dodgeDir을 바꾸지 않는다.
-      if (DIFF.dodgeSustain && e.dodgeTimer > 0) {
-        for (const pr of S.projectiles) {
-          if (pr.dead) continue;
-          if (pr.enhanced && !DIFF.dodgeEnhanced) continue;
-          const pv = Math.hypot(pr.vx, pr.vy) || 1;
-          const ux = pr.vx / pv;
-          const uy = pr.vy / pv;
-          const relX = e.x - pr.x;
-          const relY = e.y - pr.y;
-          const along = relX * ux + relY * uy;
-          if (along < 0 || along > M(12)) continue;
-          const cross = relX * -uy + relY * ux;
-          if (Math.abs(cross) < M(DIFF.dodgeCross) + e.r + M(0.6)) {
-            e.dodgeTimer = Math.max(e.dodgeTimer, 0.1);
-            break;
-          }
-        }
-      }
-
       // 조향 벡터를 부드럽게 이어붙인다(저난이도일수록 강하게).
       // 이렇게 하면 프레임마다 힘이 뒤집혀도 실제 진행 방향은 천천히 바뀐다.
       if (DIFF.steerLerp) {
@@ -3317,9 +3299,18 @@ window.COMBO_VOICE = {
         vy = e.steerY;
       }
 
-      const desired = e.dodgeTimer > 0 ? e.dodgeDir : Math.atan2(vy, vx);
+      // 회피 중이거나 유지 시간이 남아 있으면 그 방향을 계속 간다.
+      const holding = e.dodgeTimer > 0 || (e.dodgeHold || 0) > 0;
+      const desired = holding ? e.dodgeDir : Math.atan2(vy, vx);
       const roamTurn = DIFF.turnSmooth != null ? DIFF.turnSmooth : 3.2;
-      e.angle = approachAngle(e.angle, desired, dt * (e.dodgeTimer > 0 ? DIFF.turn : roamTurn));
+      // 유지 시간이 끝나갈 때는 회전 속도를 낮춰 급격히 꺾이지 않게 한다.
+      let turnRate;
+      if (e.dodgeTimer > 0) turnRate = DIFF.turn;
+      else if ((e.dodgeHold || 0) > 0) {
+        const k = clamp((e.dodgeHold || 0) / 0.45, 0, 1);   // 마지막 0.45초 동안 감속
+        turnRate = DIFF.turn * (0.18 + 0.52 * k);
+      } else turnRate = roamTurn;
+      e.angle = approachAngle(e.angle, desired, dt * turnRate);
       const sp = e.baseSpeed * (DIFF.speedScale || 1);
       const moveX = e.x;
       const moveY = e.y;
