@@ -1327,9 +1327,12 @@ window.COMBO_VOICE = {
   const MIRROR_FADE = 0.5;
   const ESK = { cd: 6, speed: 0, range: 0, enhancedSpeed: 0, enhancedRange: 0, damage: 55, enhancedDamage: 80, root: 0.8 };
   const RSK = { cd: 4.5, range: 0, speed: 0, recovery: 0.25 };
-  // Q 폭발 반경(인게임 실측): 기본 1.4m, 거울 강화 1.6m
-  const Q_BLAST_R = 1.4;
-  const EQ_BLAST_R = 1.6;
+  // ---- 관리자 실험: Q 폭발 판정 ----
+  // 인게임은 1.4m / 1.6m이지만 이 게임은 아레나가 14m로 압축되어 있어
+  // 그대로 쓰면 체감 범위가 지나치게 커진다. 압축을 감안해 줄였다.
+  const Q_BLAST_R = 0.9;
+  const EQ_BLAST_R = 1.1;
+  let adminQBlast = false;
   const EQSK = { range: 0, speed: 0, damage: 120 };
   const PLAYER_SPEED = 3.8;
   const PLAYER_RANGE_X = 2;
@@ -1742,7 +1745,10 @@ window.COMBO_VOICE = {
     adminNotice(adminMode ? '관리자 모드 ON' : '관리자 모드 OFF',
       adminMode ? '#ffd166' : '#9fb2c9');
     try { store.set('medialog.admin', adminMode ? '1' : '0'); } catch (e) {}
-    if (!adminMode) { if (S) S.frozen = false; }
+    if (!adminMode) {
+      if (S) S.frozen = false;
+      adminQBlast = false;
+    }
     syncAdminUI();
   }
 
@@ -2275,7 +2281,7 @@ window.COMBO_VOICE = {
       x: p.x + Math.cos(a) * (p.r + 4),
       y: p.y + Math.sin(a) * (p.r + 4),
       vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
-      r: M(0.7), life, maxLife: life,
+      r: M(adminQBlast ? 0.7 : 0.4), life, maxLife: life,
       minDist: Infinity,
       nearEnemyId: null,
       age: 0, shotIndex,
@@ -2513,7 +2519,7 @@ window.COMBO_VOICE = {
       x: c.x + Math.cos(a) * (c.r + 6),
       y: c.y + Math.sin(a) * (c.r + 6),
       vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
-      r: M(0.4), life, maxLife: life,
+      r: M(adminQBlast ? 0.7 : 0.4), life, maxLife: life,
       minDist: Infinity,
       nearEnemyId: null,
       age: 0, shotIndex: c.shotIndex,
@@ -3518,8 +3524,13 @@ window.COMBO_VOICE = {
               dead = true;
               break;
             }
-            // Q는 직격해도 그 자리에서 폭발한다 (범위 판정은 explodeQ가 담당)
-            explodeQ(pr);
+            if (adminQBlast) {
+              // 관리자 모드: 그 자리에서 폭발(범위 판정)
+              explodeQ(pr);
+            } else {
+              // 기본: 기존과 동일하게 직격 1명만
+              hitEnemy(e, pr);
+            }
             dead = true;
             break;
           }
@@ -3528,8 +3539,7 @@ window.COMBO_VOICE = {
 
       if (!dead && pr.life <= 0) {
         dead = true;
-        if (pr.kind === 'Q') {
-          // 사거리 끝에서 폭발한다 (인게임과 동일)
+        if (pr.kind === 'Q' && adminQBlast) {
           explodeQ(pr);
         } else if (pr.kind !== 'E') {
           resolveShot(pr.shot, 'miss');
@@ -3540,7 +3550,7 @@ window.COMBO_VOICE = {
       if (!dead && (pr.x < bounds.left - 60 || pr.x > bounds.right + 60 ||
                     pr.y < bounds.top - 60 || pr.y > bounds.bottom + 60)) {
         dead = true;
-        if (pr.kind === 'Q') {
+        if (pr.kind === 'Q' && adminQBlast) {
           explodeQ(pr);
         } else if (pr.kind !== 'E') {
           resolveShot(pr.shot, 'miss');
@@ -5415,6 +5425,10 @@ window.COMBO_VOICE = {
       S.playerDead = true;
       S.deathTimer = 0.5;
       adminNotice('자살', '#ff6b7a');
+    } else if (e.code === 'KeyP') {
+      adminQBlast = !adminQBlast;
+      adminNotice(adminQBlast ? 'Q 폭발 ON (0.9m / 1.1m)' : 'Q 폭발 OFF',
+        adminQBlast ? '#7fd8ff' : '#9fb2c9');
     }
   });
 
