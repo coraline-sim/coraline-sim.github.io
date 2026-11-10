@@ -1335,9 +1335,10 @@ window.COMBO_VOICE = {
   // 그대로 쓰면 체감 범위가 지나치게 커진다. 압축을 감안해 줄였다.
   const Q_BLAST_R = 0.55;
   const EQ_BLAST_R = 0.7;
-  let adminQBlast = false;
-  // 관리자 실험: 회피 시작 시 회전 램프(급격한 꺾임 완화)
-  let adminTurnRamp = false;
+  // Q 폭발 판정과 회피 회전 램프는 기본으로 켜져 있다.
+  // 관리자 모드에서 P / O 키로 끄고 켜며 비교할 수 있다.
+  let adminQBlast = true;
+  let adminTurnRamp = true;
   const EQSK = { range: 0, speed: 0, damage: 120 };
   // 인게임 코렐라인 이동 속도 실측값.
   // 이 값을 기준으로 모든 투사체 속도 비율(k)이 정해지므로
@@ -1753,11 +1754,7 @@ window.COMBO_VOICE = {
     adminNotice(adminMode ? '관리자 모드 ON' : '관리자 모드 OFF',
       adminMode ? '#ffd166' : '#9fb2c9');
     try { store.set('medialog.admin', adminMode ? '1' : '0'); } catch (e) {}
-    if (!adminMode) {
-      if (S) S.frozen = false;
-      adminQBlast = false;
-      adminTurnRamp = false;
-    }
+    if (!adminMode && S) S.frozen = false;
     syncAdminUI();
   }
 
@@ -5437,6 +5434,22 @@ window.COMBO_VOICE = {
       stopPlayer();
     }
 
+    // ---- Q 폭발 / 회피 램프 토글 (모든 모드) ----
+    if (S) {
+      if (e.code === 'KeyP') {
+        adminQBlast = !adminQBlast;
+        adminNotice(adminQBlast ? 'Q 폭발 ON' : 'Q 폭발 OFF',
+          adminQBlast ? '#7fd8ff' : '#9fb2c9');
+        return;
+      }
+      if (e.code === 'KeyO') {
+        adminTurnRamp = !adminTurnRamp;
+        adminNotice(adminTurnRamp ? '회피 회전 램프 ON' : '회피 회전 램프 OFF',
+          adminTurnRamp ? '#7fd8ff' : '#9fb2c9');
+        return;
+      }
+    }
+
     // ---- 관리자 전용 키 (adminMode일 때만 동작) ----
     if (!adminMode || !S) return;
     if (e.code === 'KeyJ') {
@@ -5472,14 +5485,6 @@ window.COMBO_VOICE = {
       S.playerDead = true;
       S.deathTimer = 0.5;
       adminNotice('자살', '#ff6b7a');
-    } else if (e.code === 'KeyP') {
-      adminQBlast = !adminQBlast;
-      adminNotice(adminQBlast ? 'Q 폭발 ON' : 'Q 폭발 OFF',
-        adminQBlast ? '#7fd8ff' : '#9fb2c9');
-    } else if (e.code === 'KeyO') {
-      adminTurnRamp = !adminTurnRamp;
-      adminNotice(adminTurnRamp ? '회피 회전 램프 ON' : '회피 회전 램프 OFF',
-        adminTurnRamp ? '#7fd8ff' : '#9fb2c9');
     }
   });
 
