@@ -1325,7 +1325,8 @@ window.COMBO_VOICE = {
   // cd는 게임 시간 기준(실제로는 GAME_SPEED 0.85배라 체감 1.44초).
   // 난사는 막되 답답하지 않은 선.
   const QSK = { range: 0, speed: 0, cd: 1.7, damage: 45 };
-  const WSK = { range: 0, cd: 1.7, life: 4, charge: 0.5, min: 0 };
+  // QW 연계를 빠르게 이어갈 수 있도록 Q(1.7)보다 살짝 짧게 둔다.
+  const WSK = { range: 0, cd: 1.5, life: 4, charge: 0.5, min: 0 };
   const MIRROR_FADE = 0.5;
   const ESK = { cd: 6, speed: 0, range: 0, enhancedSpeed: 0, enhancedRange: 0, damage: 55, enhancedDamage: 80, root: 0.8 };
   const RSK = { cd: 4.5, range: 0, speed: 0, recovery: 0.25 };
@@ -3000,18 +3001,23 @@ window.COMBO_VOICE = {
 
     let threat = null;
     let threatTime = Infinity;
+    // 체크메이트는 시네마가 더 넓은 범위의 탄을 요격하러 나선다.
+    const ck = isCheckpoint();
+    const scanR = ck ? M(13) : M(9);
+    const crossR = ck ? M(4.2) : M(2.4);
+    const standOut = ck ? M(2.4) : M(1.6);
     for (const pr of S.projectiles) {
       const rx = target.x - pr.x;
       const ry = target.y - pr.y;
       const d = Math.hypot(rx, ry);
-      if (d > M(9)) continue;
+      if (d > scanR) continue;
       const v = Math.hypot(pr.vx, pr.vy) || 1;
       const ux = pr.vx / v;
       const uy = pr.vy / v;
       const along = rx * ux + ry * uy;
       if (along <= 0) continue;
       const cross = Math.abs(rx * -uy + ry * ux);
-      if (cross > M(2.4) + target.r) continue;
+      if (cross > crossR + target.r) continue;
       const t = along / v;
       if (t < threatTime) { threatTime = t; threat = pr; }
     }
@@ -3019,8 +3025,8 @@ window.COMBO_VOICE = {
       const ux = threat.x - target.x;
       const uy = threat.y - target.y;
       const ul = Math.hypot(ux, uy) || 1;
-      tx = target.x + (ux / ul) * M(1.6);
-      ty = target.y + (uy / ul) * M(1.6);
+      tx = target.x + (ux / ul) * standOut;
+      ty = target.y + (uy / ul) * standOut;
     }
 
     const baseSpeed = Math.min(target.baseSpeed, M(2.4));
@@ -3040,7 +3046,8 @@ window.COMBO_VOICE = {
   function blockGuardian(pr, g) {
     resolveShot(pr.shot, 'miss');
     g.blockFlash = 0.32;
-    g.blockCd = 0.5;
+    // 체크메이트는 시네마가 더 자주 막아준다. 일반 페이블은 기존 리듬 유지.
+    g.blockCd = isCheckpoint() ? 0.12 : 0.5;
     puff(pr.x, pr.y, '#ffe6a8', 16);
     addText(g.x, g.y - g.r * 2.0, '방어됨', '#ffe6a8', 13);
     S.shake = Math.min(S.shake + 3, 10);
@@ -3268,13 +3275,18 @@ window.COMBO_VOICE = {
 
       if (e.dodgeTimer <= 0 && e.dodgeCd <= 0) {
         for (const pr of S.projectiles) {
+          // 폭발이 켜져 있으면 Q의 위험 반경이 넓어진다.
+          const blast = (adminQBlast && pr.kind === 'Q')
+            ? (pr.enhanced ? M(EQ_BLAST_R) : M(Q_BLAST_R))
+            : 0;
           let react;
           if (pr.enhanced) {
             if (!DIFF.dodgeEnhanced) continue;
             react = DIFF.react;
           } else {
             if (DIFF.firstShotImmune && pr.shotIndex <= 1) continue;
-            react = DIFF.normalReact;
+            // 폭발이 있으면 일반 Q도 위협이므로 상위 난이도는 반응한다.
+            react = blast > 0 && DIFF.normalReact === Infinity ? 0 : DIFF.normalReact;
           }
           if ((pr.age || 0) < react) continue;
 
@@ -3286,7 +3298,7 @@ window.COMBO_VOICE = {
           const along = relX * ux + relY * uy;
           if (along < 0 || along > M(12)) continue;
           const cross = relX * -uy + relY * ux;
-          if (Math.abs(cross) < M(DIFF.dodgeCross) + e.r) {
+          if (Math.abs(cross) < M(DIFF.dodgeCross) + e.r + blast) {
             dodgeAway(e, ux, uy, cross);
             break;
           }
