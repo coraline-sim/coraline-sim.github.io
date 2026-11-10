@@ -1871,14 +1871,18 @@ window.COMBO_VOICE = {
     EQSK.range = M(6.8);
     // 인게임 수치(기본 14 / 강화 15 m/s)를 플레이어 이동속도 비율로 환산해 적용한다.
     // (인게임 플레이어 3.55 m/s 기준, 강화/기본 = 1.0714)
-    QSK.speed = M(14) * (PLAYER_SPEED / 3.55);
-    EQSK.speed = M(15) * (PLAYER_SPEED / 3.55);
+    // 인게임 실측치를 플레이어 이동속도 비율로 환산한다.
+    // 인게임 플레이어 3.55 m/s 기준 → 우리 플레이어(PLAYER_SPEED)에 맞춤.
+    // 그렇게 해야 압축·배속이 달라도 "플레이어 대비 감각"이 같아진다.
+    const k = PLAYER_SPEED / 3.55;
+    QSK.speed = M(14) * k;
+    EQSK.speed = M(15) * k;
     ESK.range = M(8);
-    ESK.speed = M(13);
+    ESK.speed = M(13) * k;            // 인게임 E 13 m/s
     ESK.enhancedRange = M(7);
-    ESK.enhancedSpeed = M(15);
+    ESK.enhancedSpeed = M(13) * k;    // 인게임 강화 E도 13 m/s (거울 통과 후에도 동일)
     RSK.range = M(2.5);
-    RSK.speed = M(10);
+    RSK.speed = M(10) * k;            // 인게임 R 이동 속도 기준
   }
 
   // 월드 좌표를 가진 모든 엔티티를 한 곳에 모은다.
