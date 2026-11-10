@@ -1333,6 +1333,8 @@ window.COMBO_VOICE = {
   const Q_BLAST_R = 0.55;
   const EQ_BLAST_R = 0.7;
   let adminQBlast = false;
+  // 관리자 실험: 회피 시작 시 회전 램프(급격한 꺾임 완화)
+  let adminTurnRamp = false;
   const EQSK = { range: 0, speed: 0, damage: 120 };
   const PLAYER_SPEED = 3.8;
   const PLAYER_RANGE_X = 2;
@@ -1748,6 +1750,7 @@ window.COMBO_VOICE = {
     if (!adminMode) {
       if (S) S.frozen = false;
       adminQBlast = false;
+      adminTurnRamp = false;
     }
     syncAdminUI();
   }
@@ -3305,7 +3308,17 @@ window.COMBO_VOICE = {
       const roamTurn = DIFF.turnSmooth != null ? DIFF.turnSmooth : 3.2;
       // 유지 시간이 끝나갈 때는 회전 속도를 낮춰 급격히 꺾이지 않게 한다.
       let turnRate;
-      if (e.dodgeTimer > 0) turnRate = DIFF.turn;
+      if (e.dodgeTimer > 0) {
+        if (adminTurnRamp) {
+          // 회피 시작 후 0.12초에 걸쳐 roamTurn → DIFF.turn 으로 상승.
+          // 최고 회전 속도는 유지해 회피 성공률을 떨어뜨리지 않는다.
+          const elapsed = DIFF.dodgeDur - e.dodgeTimer;
+          const ramp = clamp(elapsed / 0.12, 0, 1);
+          turnRate = roamTurn + (DIFF.turn - roamTurn) * ramp;
+        } else {
+          turnRate = DIFF.turn;
+        }
+      }
       else if ((e.dodgeHold || 0) > 0) {
         const k = clamp((e.dodgeHold || 0) / 0.45, 0, 1);   // 마지막 0.45초 동안 감속
         turnRate = DIFF.turn * (0.18 + 0.52 * k);
@@ -5418,8 +5431,12 @@ window.COMBO_VOICE = {
       adminNotice('자살', '#ff6b7a');
     } else if (e.code === 'KeyP') {
       adminQBlast = !adminQBlast;
-      adminNotice(adminQBlast ? 'Q 폭발 ON (0.9m / 1.1m)' : 'Q 폭발 OFF',
+      adminNotice(adminQBlast ? 'Q 폭발 ON' : 'Q 폭발 OFF',
         adminQBlast ? '#7fd8ff' : '#9fb2c9');
+    } else if (e.code === 'KeyO') {
+      adminTurnRamp = !adminTurnRamp;
+      adminNotice(adminTurnRamp ? '회피 회전 램프 ON' : '회피 회전 램프 OFF',
+        adminTurnRamp ? '#7fd8ff' : '#9fb2c9');
     }
   });
 
