@@ -1327,6 +1327,9 @@ window.COMBO_VOICE = {
   const MIRROR_FADE = 0.5;
   const ESK = { cd: 6, speed: 0, range: 0, enhancedSpeed: 0, enhancedRange: 0, damage: 55, enhancedDamage: 80, root: 0.8 };
   const RSK = { cd: 4.5, range: 0, speed: 0, recovery: 0.25 };
+  // Q 폭발 반경(인게임 실측): 기본 1.4m, 거울 강화 1.6m
+  const Q_BLAST_R = 1.4;
+  const EQ_BLAST_R = 1.6;
   const EQSK = { range: 0, speed: 0, damage: 120 };
   const PLAYER_SPEED = 3.8;
   const PLAYER_RANGE_X = 2;
@@ -2205,6 +2208,43 @@ window.COMBO_VOICE = {
     if (flipBtn) flipBtn.textContent = FLIP ? '위 → 아래' : '아래 → 위';
   }
 
+  // Q 탄환 폭발. 범위는 정직하게(기본 1.4m / 강화 1.6m) 표시하되,
+  // 실제 피해는 "가장 제대로 맞은 1명"에게만 준다. → 멀티킬 불가.
+  function explodeQ(pr) {
+    const radius = pr.enhanced ? M(EQ_BLAST_R) : M(Q_BLAST_R);
+    const cx = pr.x;
+    const cy = pr.y;
+    const col = pr.enhanced
+      ? (pr.dark ? '#c49bff' : '#7fd8ff')
+      : '#eaf9ff';
+
+    // 시각: 폭발 범위를 그대로 보여준다
+    S.particles.push({
+      x: cx, y: cy, vx: 0, vy: 0, ring: true,
+      life: 0.34, max: 0.34,
+      size: radius, color: col,
+    });
+    puff(cx, cy, col, pr.enhanced ? 26 : 16);
+    S.shake = Math.min(S.shake + (pr.enhanced ? 5 : 2), 14);
+
+    // 피해 대상 선정: 폭발 중심에서 가장 가까운(가장 제대로 맞은) 적 1명
+    let target = null;
+    let best = Infinity;
+    for (const e of S.enemies) {
+      if (e.dead) continue;
+      const d = dist(cx, cy, e.x, e.y);
+      if (d > radius + e.r) continue;
+      if (d < best) { best = d; target = e; }
+    }
+
+    if (target) {
+      hitEnemy(target, pr);
+    } else {
+      resolveShot(pr.shot, 'miss');
+      nearMissLaugh(pr);
+    }
+  }
+
   function resolveShot(shot, result) {
     if (!shot || shot.resolved) return;
     shot.resolved = true;
@@ -2235,7 +2275,7 @@ window.COMBO_VOICE = {
       x: p.x + Math.cos(a) * (p.r + 4),
       y: p.y + Math.sin(a) * (p.r + 4),
       vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
-      r: M(0.4), life, maxLife: life,
+      r: M(0.7), life, maxLife: life,
       minDist: Infinity,
       nearEnemyId: null,
       age: 0, shotIndex,
@@ -3471,9 +3511,15 @@ window.COMBO_VOICE = {
           if (e.dead) continue;
           if (pr.kind === 'E' && pr.hits.has(e.id)) continue;
           if (dist(pr.x, pr.y, e.x, e.y) < pr.r + e.r) {
-            if (pr.kind === 'E') pr.hits.add(e.id);
-            hitEnemy(e, pr);
-            if (pr.pierce) continue;
+            if (pr.kind === 'E') {
+              pr.hits.add(e.id);
+              hitEnemy(e, pr);
+              if (pr.pierce) continue;
+              dead = true;
+              break;
+            }
+            // Q는 직격해도 그 자리에서 폭발한다 (범위 판정은 explodeQ가 담당)
+            explodeQ(pr);
             dead = true;
             break;
           }
@@ -3482,7 +3528,10 @@ window.COMBO_VOICE = {
 
       if (!dead && pr.life <= 0) {
         dead = true;
-        if (pr.kind !== 'E') {
+        if (pr.kind === 'Q') {
+          // 사거리 끝에서 폭발한다 (인게임과 동일)
+          explodeQ(pr);
+        } else if (pr.kind !== 'E') {
           resolveShot(pr.shot, 'miss');
           nearMissLaugh(pr);
         }
@@ -3491,7 +3540,9 @@ window.COMBO_VOICE = {
       if (!dead && (pr.x < bounds.left - 60 || pr.x > bounds.right + 60 ||
                     pr.y < bounds.top - 60 || pr.y > bounds.bottom + 60)) {
         dead = true;
-        if (pr.kind !== 'E') {
+        if (pr.kind === 'Q') {
+          explodeQ(pr);
+        } else if (pr.kind !== 'E') {
           resolveShot(pr.shot, 'miss');
           nearMissLaugh(pr);
         }
