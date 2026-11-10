@@ -3298,9 +3298,31 @@ window.COMBO_VOICE = {
           const along = relX * ux + relY * uy;
           if (along < 0 || along > M(12)) continue;
           const cross = relX * -uy + relY * ux;
+
+          // (1) 진행 경로 위협: 탄이 지나갈 선에서 벗어난다.
           if (Math.abs(cross) < M(DIFF.dodgeCross) + e.r + blast) {
             dodgeAway(e, ux, uy, cross);
             break;
+          }
+
+          // (2) 폭발 지점 위협: 탄이 사거리 끝에서 터지므로
+          //     그 지점의 폭발 반경까지 벗어나야 한다.
+          if (blast > 0) {
+            const remain = Math.max(0, pr.life) * pv;
+            const ix = pr.x + ux * remain;
+            const iy = pr.y + uy * remain;
+            const bd = dist(e.x, e.y, ix, iy);
+            if (bd < blast + e.r) {
+              // 폭발 중심에서 바깥으로 도망
+              const ax = e.x - ix;
+              const ay = e.y - iy;
+              const al = Math.hypot(ax, ay) || 1;
+              e.dodgeDir = Math.atan2(ay / al, ax / al);
+              e.dodgeTimer = DIFF.dodgeDur;
+              e.dodgeCd = DIFF.dodgeCd;
+              e.dodgeHold = DIFF.dodgeHold || 0;
+              break;
+            }
           }
         }
       }
