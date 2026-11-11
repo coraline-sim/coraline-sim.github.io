@@ -4694,6 +4694,23 @@ window.COMBO_VOICE = {
     g.closePath();
   }
 
+  function drawMirrorArrow(g, r, color, width) {
+    const tip = r * 1.38;
+    const back = r * 1.06;
+    const spread = r * 0.28;
+    g.save();
+    g.beginPath();
+    g.moveTo(back, -spread);
+    g.lineTo(tip, 0);
+    g.lineTo(back, spread);
+    g.strokeStyle = color;
+    g.lineWidth = width || Math.max(1.6, r * 0.07);
+    g.lineCap = 'round';
+    g.lineJoin = 'round';
+    g.stroke();
+    g.restore();
+  }
+
   function drawMirrorGem(g, x, y, s, dark) {
     g.beginPath();
     g.moveTo(x + s * 1.25, y);
@@ -4830,12 +4847,6 @@ window.COMBO_VOICE = {
       ctx.strokeStyle = `rgba(${main},0.4)`;
       ctx.lineWidth = 2;
       ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(m.x, m.y);
-      ctx.lineTo(m.x + ax * 80, m.y + ay * 80);
-      ctx.strokeStyle = `rgba(${main},0.7)`;
-      ctx.lineWidth = 2;
-      ctx.stroke();
       ctx.setLineDash([]);
     }
 
@@ -4847,6 +4858,7 @@ window.COMBO_VOICE = {
     ctx.shadowColor = `rgba(${main},1)`;
 
     paintMirror(ctx, r, dark);
+    if (m.danger) drawMirrorArrow(ctx, r, `rgba(${main},0.55)`);
 
     ctx.restore();
 
@@ -4882,7 +4894,7 @@ window.COMBO_VOICE = {
     ctx.moveTo(x, y);
     ctx.lineTo(x + ax * EQSK.range, y + ay * EQSK.range);
     ctx.setLineDash([5, 9]);
-    ctx.strokeStyle = `rgba(${main},0.45)`;
+    ctx.strokeStyle = `rgba(${main},0.28)`;
     ctx.lineWidth = 2;
     ctx.stroke();
     ctx.setLineDash([]);
@@ -4892,12 +4904,7 @@ window.COMBO_VOICE = {
     ctx.rotate(angle);
     const mr = M(0.5);
     paintMirror(ctx, mr, dark);
-    ctx.beginPath();
-    ctx.moveTo(mr * 1.3, 0);
-    ctx.lineTo(mr * 2.2, 0);
-    ctx.strokeStyle = `rgba(${main},0.8)`;
-    ctx.lineWidth = 2;
-    ctx.stroke();
+    drawMirrorArrow(ctx, mr, `rgba(${main},0.4)`);
     ctx.restore();
 
     if (S.drag.active) {
