@@ -4695,16 +4695,16 @@ window.COMBO_VOICE = {
   }
 
   function drawMirrorArrow(g, r, color, width) {
-    const tip = r * 1.38;
-    const back = r * 1.06;
-    const spread = r * 0.28;
+    const tip = r * 1.48;
+    const back = r * 1.08;
+    const spread = r * 0.34;
     g.save();
     g.beginPath();
     g.moveTo(back, -spread);
     g.lineTo(tip, 0);
     g.lineTo(back, spread);
     g.strokeStyle = color;
-    g.lineWidth = width || Math.max(1.6, r * 0.07);
+    g.lineWidth = width || Math.max(2, r * 0.085);
     g.lineCap = 'round';
     g.lineJoin = 'round';
     g.stroke();
@@ -4826,8 +4826,6 @@ window.COMBO_VOICE = {
     const absorbed = !!m.absorbed;
     const alpha = m.fired ? clamp(m.fade / MIRROR_FADE, 0, 1) : 1;
     const lifeK = absorbed ? 1 : clamp(m.life / m.maxLife, 0, 1);
-    const ax = Math.cos(m.angle);
-    const ay = Math.sin(m.angle);
     const dark = !!m.dark;
     const main = dark ? '196,155,255' : '127,216,255';
 
@@ -4839,15 +4837,6 @@ window.COMBO_VOICE = {
       ctx.strokeStyle = `rgba(${main},0.85)`;
       ctx.lineWidth = 2.5;
       ctx.stroke();
-
-      ctx.beginPath();
-      ctx.moveTo(m.x, m.y);
-      ctx.lineTo(m.x + ax * EQSK.range, m.y + ay * EQSK.range);
-      ctx.setLineDash([5, 9]);
-      ctx.strokeStyle = `rgba(${main},0.4)`;
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.setLineDash([]);
     }
 
     ctx.save();
@@ -4858,7 +4847,7 @@ window.COMBO_VOICE = {
     ctx.shadowColor = `rgba(${main},1)`;
 
     paintMirror(ctx, r, dark);
-    if (m.danger) drawMirrorArrow(ctx, r, `rgba(${main},0.55)`);
+    if (m.danger) drawMirrorArrow(ctx, r, `rgba(${main},0.7)`);
 
     ctx.restore();
 
@@ -4882,22 +4871,12 @@ window.COMBO_VOICE = {
       angle = Math.atan2(y - S.player.y, x - S.player.x);
     }
 
-    const ax = Math.cos(angle);
-    const ay = Math.sin(angle);
     const dark = !!S.nextMirrorDark;
     const main = dark ? '196,155,255' : '191,230,255';
     const bright = dark ? '#e0ccff' : '#bfe6ff';
 
     ctx.save();
     ctx.globalAlpha = 0.6;
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x + ax * EQSK.range, y + ay * EQSK.range);
-    ctx.setLineDash([5, 9]);
-    ctx.strokeStyle = `rgba(${main},0.28)`;
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.setLineDash([]);
 
     ctx.save();
     ctx.translate(x, y);
