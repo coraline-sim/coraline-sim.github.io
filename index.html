@@ -4681,6 +4681,7 @@ window.COMBO_VOICE = {
   }
 
   function traceHeartShape(g, w, h) {
+    g.beginPath();
     const N = 60;
     for (let i = 0; i <= N; i++) {
       const t = (i / N) * Math.PI * 2;
@@ -4832,8 +4833,14 @@ window.COMBO_VOICE = {
     ctx.save();
     ctx.globalAlpha = alpha;
     if (m.danger) {
+      const ringR = m.r + 16;
       ctx.beginPath();
-      ctx.arc(m.x, m.y, m.r + 10, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * lifeK);
+      ctx.arc(m.x, m.y, ringR, 0, Math.PI * 2);
+      ctx.strokeStyle = `rgba(${main},0.16)`;
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(m.x, m.y, ringR, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * lifeK);
       ctx.strokeStyle = `rgba(${main},0.85)`;
       ctx.lineWidth = 2.5;
       ctx.stroke();
@@ -4843,7 +4850,7 @@ window.COMBO_VOICE = {
     ctx.translate(m.x, m.y);
     ctx.rotate(m.angle);
     const r = m.r;
-    ctx.shadowBlur = 20 + (m.flash > 0 ? 26 : 0) + Math.sin(now * 3) * 4;
+    ctx.shadowBlur = 10 + (m.flash > 0 ? 14 : 0) + Math.sin(now * 3) * 2;
     ctx.shadowColor = `rgba(${main},1)`;
 
     paintMirror(ctx, r, dark);
