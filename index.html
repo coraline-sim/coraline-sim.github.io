@@ -3282,8 +3282,11 @@ window.COMBO_VOICE = {
             react = DIFF.react;
           } else {
             if (DIFF.firstShotImmune && pr.shotIndex <= 1) continue;
-            // 폭발이 있으면 일반 Q도 위협이므로 상위 난이도는 반응한다.
-            react = blast > 0 && DIFF.normalReact === Infinity ? 0 : DIFF.normalReact;
+            // 폭발이 있으면 페이블은 일반 Q도 위협으로 본다.
+            // 쉬움(normalReact Infinity)은 '일반 Q는 안 피한다'는 뜻이므로 건드리지 않는다.
+            react = (blast > 0 && isFable() && DIFF.normalReact === Infinity)
+              ? 0
+              : DIFF.normalReact;
           }
           if ((pr.age || 0) < react) continue;
 
